@@ -27,6 +27,9 @@ const paths = {
   arrowLeft: "M19 12H5m7 7l-7-7 7-7",
   download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3",
   sparkle: "M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z",
+  close: "M18 6L6 18M6 6l12 12",
+  bank: "M3 21h18M4 10h16M12 3l9 7H3l9-7zM6 10v8m4-8v8m4-8v8m4-8v8",
+  reset: "M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15",
 };
 
 export default function Icon({ name, size = 18, color = "currentColor", ...rest }) {
