@@ -23,7 +23,7 @@ export default function CompanyStep({ data, onChange }) {
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="building" size={22} color="#FFCE00" /> Unternehmensdaten
+        <Icon name="building" size={22} color="var(--yellow)" /> Unternehmensdaten
       </h2>
       <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Grunddaten des Unternehmens für den Pitch.

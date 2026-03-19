@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { C } from "../colors";
+import { B, C } from "../colors";
 import Icon from "./Icons";
 import { fmtEuro, fmtNum } from "../calcEngine";
 
@@ -430,7 +430,17 @@ const CH = VB_H - PAD.t - PAD.b;
 
 function scaleY(val, max) { return CH - (val / (max || 1)) * CH; }
 
-function ChartDailyProfile({ data, season }) {
+/* Chart theme palettes */
+const CHART_DARK = {
+  grid: C.navyLight, greenLight: C.greenLight, blue: "#29ABE2", gold: C.gold,
+  softGray: C.softGray, warmWhite: C.warmWhite, red: C.red,
+};
+const CHART_LIGHT = {
+  grid: "rgba(0,0,0,0.1)", greenLight: B.greenLight, blue: B.cyan, gold: B.yellowDim,
+  softGray: B.grayText, warmWhite: B.black, red: B.red,
+};
+
+function ChartDailyProfile({ data, season, theme = CHART_DARK }) {
   const { pv, load, price } = data;
   const maxEnergy = Math.max(...pv, ...load, 0.01);
   const maxPrice = Math.max(...price, 0.01);
@@ -447,7 +457,7 @@ function ChartDailyProfile({ data, season }) {
       {/* Grid */}
       {[0, 0.25, 0.5, 0.75, 1].map(f => (
         <line key={f} x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + f * CH} y2={PAD.t + f * CH}
-          stroke={C.navyLight} strokeWidth="0.5" strokeDasharray="3,3" />
+          stroke={theme.grid} strokeWidth="0.5" strokeDasharray="3,3" />
       ))}
       {/* PV bars (green) */}
       {pv.map((v, i) => (
@@ -455,52 +465,52 @@ function ChartDailyProfile({ data, season }) {
           x={PAD.l + i * (CW / 24) + (CW / 24 - barW * 2 - 2) / 2}
           y={PAD.t + scaleY(v, maxEnergy)}
           width={barW} height={Math.max(0, (v / maxEnergy) * CH)}
-          fill={C.greenLight} fillOpacity={0.85} rx="1" />
+          fill={theme.greenLight} fillOpacity={0.85} rx="1" />
       ))}
-      {/* Load bars (navy) */}
+      {/* Load bars */}
       {load.map((v, i) => (
         <rect key={`ld${i}`}
           x={PAD.l + i * (CW / 24) + (CW / 24 - barW * 2 - 2) / 2 + barW + 2}
           y={PAD.t + scaleY(v, maxEnergy)}
           width={barW} height={Math.max(0, (v / maxEnergy) * CH)}
-          fill={C.blue} fillOpacity={0.75} rx="1" />
+          fill={theme.blue} fillOpacity={0.75} rx="1" />
       ))}
       {/* Price line (gold dashed) */}
-      <polyline points={pricePoints} fill="none" stroke={C.gold} strokeWidth="1.5" strokeDasharray="4,3" />
+      <polyline points={pricePoints} fill="none" stroke={theme.gold} strokeWidth="1.5" strokeDasharray="4,3" />
       {/* Axes */}
-      <line x1={PAD.l} x2={PAD.l} y1={PAD.t} y2={PAD.t + CH} stroke={C.softGray} strokeWidth="0.8" />
-      <line x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + CH} y2={PAD.t + CH} stroke={C.softGray} strokeWidth="0.8" />
+      <line x1={PAD.l} x2={PAD.l} y1={PAD.t} y2={PAD.t + CH} stroke={theme.softGray} strokeWidth="0.8" />
+      <line x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + CH} y2={PAD.t + CH} stroke={theme.softGray} strokeWidth="0.8" />
       {/* X labels */}
       {[0, 6, 12, 18, 23].map(h => (
         <text key={h} x={PAD.l + (h + 0.5) * (CW / 24)} y={PAD.t + CH + 14}
-          textAnchor="middle" fill={C.softGray} fontSize="9" fontFamily="Calibri, sans-serif">{h}h</text>
+          textAnchor="middle" fill={theme.softGray} fontSize="9" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">{h}h</text>
       ))}
       {/* Y left labels */}
       {[0, 0.25, 0.5, 0.75, 1].map(f => (
         <text key={f} x={PAD.l - 5} y={PAD.t + f * CH + 3}
-          textAnchor="end" fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">
+          textAnchor="end" fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
           {fmtNum(maxEnergy * (1 - f), 0)}
         </text>
       ))}
       {/* Y right labels (price) */}
       {[0, 0.5, 1].map(f => (
         <text key={f} x={PAD.l + CW + 5} y={PAD.t + f * CH + 3}
-          textAnchor="start" fill={C.gold} fontSize="8" fontFamily="Calibri, sans-serif">
+          textAnchor="start" fill={theme.gold} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
           {fmtNum(maxPrice * (1 - f), 0)}
         </text>
       ))}
       {/* Legend */}
-      <rect x={PAD.l} y={VB_H - 12} width={8} height={8} fill={C.greenLight} rx="1" />
-      <text x={PAD.l + 11} y={VB_H - 5} fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">PV (kWh)</text>
-      <rect x={PAD.l + 60} y={VB_H - 12} width={8} height={8} fill={C.blue} rx="1" />
-      <text x={PAD.l + 71} y={VB_H - 5} fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">Last (kWh)</text>
-      <line x1={PAD.l + 130} x2={PAD.l + 140} y1={VB_H - 8} y2={VB_H - 8} stroke={C.gold} strokeWidth="1.5" strokeDasharray="4,2" />
-      <text x={PAD.l + 143} y={VB_H - 5} fill={C.gold} fontSize="8" fontFamily="Calibri, sans-serif">Preis (€/MWh)</text>
+      <rect x={PAD.l} y={VB_H - 12} width={8} height={8} fill={theme.greenLight} rx="1" />
+      <text x={PAD.l + 11} y={VB_H - 5} fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">PV (kWh)</text>
+      <rect x={PAD.l + 60} y={VB_H - 12} width={8} height={8} fill={theme.blue} rx="1" />
+      <text x={PAD.l + 71} y={VB_H - 5} fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Last (kWh)</text>
+      <line x1={PAD.l + 130} x2={PAD.l + 140} y1={VB_H - 8} y2={VB_H - 8} stroke={theme.gold} strokeWidth="1.5" strokeDasharray="4,2" />
+      <text x={PAD.l + 143} y={VB_H - 5} fill={theme.gold} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Preis (€/MWh)</text>
     </svg>
   );
 }
 
-function ChartMonthly({ monthly }) {
+function ChartMonthly({ monthly, theme = CHART_DARK }) {
   const { pv, load, sc, price } = monthly;
   const maxE = Math.max(...pv, ...load, 0.01);
   const maxP = Math.max(...price, 0.01);
@@ -517,56 +527,56 @@ function ChartMonthly({ monthly }) {
     <svg viewBox={`0 0 ${VB_W} ${VB_H}`} style={{ width: "100%", height: "auto" }} aria-label="Monatsprofil">
       {[0, 0.25, 0.5, 0.75, 1].map(f => (
         <line key={f} x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + f * CH} y2={PAD.t + f * CH}
-          stroke={C.navyLight} strokeWidth="0.5" strokeDasharray="3,3" />
+          stroke={theme.grid} strokeWidth="0.5" strokeDasharray="3,3" />
       ))}
       {pv.map((v, i) => {
         const x0 = PAD.l + i * (CW / 12) + (CW / 12 - bw * 3 - 4) / 2;
         return (
           <g key={i}>
-            <rect x={x0} y={PAD.t + scaleY(v, maxE)} width={bw} height={Math.max(0, (v / maxE) * CH)} fill={C.greenLight} fillOpacity={0.85} rx="1" />
-            <rect x={x0 + bw + 2} y={PAD.t + scaleY(load[i], maxE)} width={bw} height={Math.max(0, (load[i] / maxE) * CH)} fill={C.blue} fillOpacity={0.75} rx="1" />
-            <rect x={x0 + bw * 2 + 4} y={PAD.t + scaleY(sc[i], maxE)} width={bw} height={Math.max(0, (sc[i] / maxE) * CH)} fill={C.gold} fillOpacity={0.8} rx="1" />
+            <rect x={x0} y={PAD.t + scaleY(v, maxE)} width={bw} height={Math.max(0, (v / maxE) * CH)} fill={theme.greenLight} fillOpacity={0.85} rx="1" />
+            <rect x={x0 + bw + 2} y={PAD.t + scaleY(load[i], maxE)} width={bw} height={Math.max(0, (load[i] / maxE) * CH)} fill={theme.blue} fillOpacity={0.75} rx="1" />
+            <rect x={x0 + bw * 2 + 4} y={PAD.t + scaleY(sc[i], maxE)} width={bw} height={Math.max(0, (sc[i] / maxE) * CH)} fill={theme.gold} fillOpacity={0.8} rx="1" />
             <text x={PAD.l + (i + 0.5) * (CW / 12)} y={PAD.t + CH + 14}
-              textAnchor="middle" fill={C.softGray} fontSize="9" fontFamily="Calibri, sans-serif">{MONTHS[i]}</text>
+              textAnchor="middle" fill={theme.softGray} fontSize="9" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">{MONTHS[i]}</text>
           </g>
         );
       })}
-      <polyline points={pricePoints} fill="none" stroke={C.gold} strokeWidth="1.5" strokeDasharray="4,3" />
-      <line x1={PAD.l} x2={PAD.l} y1={PAD.t} y2={PAD.t + CH} stroke={C.softGray} strokeWidth="0.8" />
-      <line x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + CH} y2={PAD.t + CH} stroke={C.softGray} strokeWidth="0.8" />
+      <polyline points={pricePoints} fill="none" stroke={theme.gold} strokeWidth="1.5" strokeDasharray="4,3" />
+      <line x1={PAD.l} x2={PAD.l} y1={PAD.t} y2={PAD.t + CH} stroke={theme.softGray} strokeWidth="0.8" />
+      <line x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + CH} y2={PAD.t + CH} stroke={theme.softGray} strokeWidth="0.8" />
       {[0, 0.5, 1].map(f => (
         <text key={f} x={PAD.l - 5} y={PAD.t + f * CH + 3}
-          textAnchor="end" fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">
+          textAnchor="end" fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
           {fmtNum(maxE * (1 - f), 0)}
         </text>
       ))}
       {[0, 0.5, 1].map(f => (
         <text key={f} x={PAD.l + CW + 5} y={PAD.t + f * CH + 3}
-          textAnchor="start" fill={C.gold} fontSize="8" fontFamily="Calibri, sans-serif">
+          textAnchor="start" fill={theme.gold} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
           {fmtNum(maxP * (1 - f), 0)}
         </text>
       ))}
-      <rect x={PAD.l} y={VB_H - 12} width={8} height={8} fill={C.greenLight} rx="1" />
-      <text x={PAD.l + 11} y={VB_H - 5} fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">PV (MWh)</text>
-      <rect x={PAD.l + 65} y={VB_H - 12} width={8} height={8} fill={C.blue} rx="1" />
-      <text x={PAD.l + 76} y={VB_H - 5} fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">Last (MWh)</text>
-      <rect x={PAD.l + 132} y={VB_H - 12} width={8} height={8} fill={C.gold} rx="1" />
-      <text x={PAD.l + 143} y={VB_H - 5} fill={C.gold} fontSize="8" fontFamily="Calibri, sans-serif">Eigenverbrauch (MWh)</text>
+      <rect x={PAD.l} y={VB_H - 12} width={8} height={8} fill={theme.greenLight} rx="1" />
+      <text x={PAD.l + 11} y={VB_H - 5} fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">PV (MWh)</text>
+      <rect x={PAD.l + 65} y={VB_H - 12} width={8} height={8} fill={theme.blue} rx="1" />
+      <text x={PAD.l + 76} y={VB_H - 5} fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Last (MWh)</text>
+      <rect x={PAD.l + 132} y={VB_H - 12} width={8} height={8} fill={theme.gold} rx="1" />
+      <text x={PAD.l + 143} y={VB_H - 5} fill={theme.gold} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Eigenverbrauch (MWh)</text>
     </svg>
   );
 }
 
-function ChartComparisonBars({ results }) {
+function ChartComparisonBars({ results, theme = CHART_DARK }) {
   if (!results) return null;
   const { dvRevenue, eegRevenue, dvBessRevenue, oldProcurement, newProcurement, procurementSavings } = results;
 
   const rows = [
-    { label: "EEG-Einspeisung", val: eegRevenue, color: C.softGray },
-    { label: "Direktvermarktung", val: dvRevenue, color: C.greenLight },
-    { label: "DV + BESS", val: dvBessRevenue, color: C.gold },
-    { label: "Festpreis (alt)", val: oldProcurement, color: C.red },
-    { label: "Spot-Beschaffung", val: newProcurement, color: C.blue },
-    { label: "Beschaffungsersparnis", val: Math.abs(procurementSavings), color: C.greenLight },
+    { label: "EEG-Einspeisung", val: eegRevenue, color: theme.softGray },
+    { label: "Direktvermarktung", val: dvRevenue, color: theme.greenLight },
+    { label: "DV + BESS", val: dvBessRevenue, color: theme.gold },
+    { label: "Festpreis (alt)", val: oldProcurement, color: theme.red },
+    { label: "Spot-Beschaffung", val: newProcurement, color: theme.blue },
+    { label: "Beschaffungsersparnis", val: Math.abs(procurementSavings), color: theme.greenLight },
   ];
 
   const maxVal = Math.max(...rows.map(r => r.val), 1);
@@ -581,9 +591,9 @@ function ChartComparisonBars({ results }) {
         const y = 10 + i * rowH;
         return (
           <g key={i}>
-            <text x={PAD.l - 5} y={y + 14} textAnchor="end" fill={C.softGray} fontSize="9" fontFamily="Calibri, sans-serif">{row.label}</text>
+            <text x={PAD.l - 5} y={y + 14} textAnchor="end" fill={theme.softGray} fontSize="9" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">{row.label}</text>
             <rect x={PAD.l} y={y + 4} width={Math.max(0, barW)} height={18} fill={row.color} fillOpacity={0.85} rx="2" />
-            <text x={PAD.l + barW + 6} y={y + 15} fill={C.warmWhite} fontSize="9" fontFamily="Calibri, sans-serif">
+            <text x={PAD.l + barW + 6} y={y + 15} fill={theme.warmWhite} fontSize="9" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
               {fmtEuro(row.val)}
             </text>
           </g>
@@ -593,7 +603,7 @@ function ChartComparisonBars({ results }) {
   );
 }
 
-function ChartBessSoc({ socData, bessKWh }) {
+function ChartBessSoc({ socData, bessKWh, theme = CHART_DARK }) {
   if (!socData || socData.length === 0) return null;
   const maxSoc = bessKWh || Math.max(...socData, 1);
   const n = Math.min(socData.length, 365);
@@ -612,29 +622,29 @@ function ChartBessSoc({ socData, bessKWh }) {
     <svg viewBox={`0 0 ${VB_W} ${VB_H}`} style={{ width: "100%", height: "auto" }} aria-label="BESS Ladezustand">
       {[0, 0.25, 0.5, 0.75, 1].map(f => (
         <line key={f} x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + f * CH} y2={PAD.t + f * CH}
-          stroke={C.navyLight} strokeWidth="0.5" strokeDasharray="3,3" />
+          stroke={theme.grid} strokeWidth="0.5" strokeDasharray="3,3" />
       ))}
       {/* SOC min/max bands */}
-      <rect x={PAD.l} y={PAD.t} width={CW} height={(1 - 0.92) * CH} fill={C.gold} fillOpacity={0.1} />
-      <rect x={PAD.l} y={PAD.t + 0.92 * CH} width={CW} height={0.08 * CH} fill={C.red} fillOpacity={0.1} />
+      <rect x={PAD.l} y={PAD.t} width={CW} height={(1 - 0.92) * CH} fill={theme.gold} fillOpacity={0.1} />
+      <rect x={PAD.l} y={PAD.t + 0.92 * CH} width={CW} height={0.08 * CH} fill={theme.red} fillOpacity={0.1} />
       {/* Area fill */}
-      <path d={areaPath} fill={C.blue} fillOpacity={0.2} />
-      <polyline points={polyline} fill="none" stroke={C.blue} strokeWidth="1.2" />
-      <line x1={PAD.l} x2={PAD.l} y1={PAD.t} y2={PAD.t + CH} stroke={C.softGray} strokeWidth="0.8" />
-      <line x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + CH} y2={PAD.t + CH} stroke={C.softGray} strokeWidth="0.8" />
+      <path d={areaPath} fill={theme.blue} fillOpacity={0.2} />
+      <polyline points={polyline} fill="none" stroke={theme.blue} strokeWidth="1.2" />
+      <line x1={PAD.l} x2={PAD.l} y1={PAD.t} y2={PAD.t + CH} stroke={theme.softGray} strokeWidth="0.8" />
+      <line x1={PAD.l} x2={PAD.l + CW} y1={PAD.t + CH} y2={PAD.t + CH} stroke={theme.softGray} strokeWidth="0.8" />
       {[0, 0.25, 0.5, 0.75, 1].map(f => (
         <text key={f} x={PAD.l - 5} y={PAD.t + f * CH + 3}
-          textAnchor="end" fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">
+          textAnchor="end" fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
           {fmtNum(maxSoc * (1 - f), 0)}
         </text>
       ))}
       {[0, 3, 6, 9].map(q => (
         <text key={q} x={PAD.l + (q / 12) * CW} y={PAD.t + CH + 14}
-          textAnchor="middle" fill={C.softGray} fontSize="9" fontFamily="Calibri, sans-serif">
+          textAnchor="middle" fill={theme.softGray} fontSize="9" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
           {["Jan", "Apr", "Jul", "Okt"][q / 3]}
         </text>
       ))}
-      <text x={PAD.l + 5} y={PAD.t + 12} fill={C.softGray} fontSize="8" fontFamily="Calibri, sans-serif">kWh</text>
+      <text x={PAD.l + 5} y={PAD.t + 12} fill={theme.softGray} fontSize="8" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">kWh</text>
     </svg>
   );
 }
@@ -756,11 +766,6 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   const spConf = pc.speicher || {};
 
   // Derived defaults
-  const defaultLat = project?.company?.lat || 48.1;
-  const defaultLon = project?.company?.lon || 11.6;
-  const defaultLoad = e.stromverbrauch || 10000; // MWh/a (calcEngine uses MWh already? no — kWh)
-  // Note: calcEngine stores MWh for stromverbrauch in energy step → treat as MWh
-  const defaultPriceCt = e.strompreis || 22;
   const defaultBessKWh = (spConf.kapazitaet || 1) * 1000; // MWh → kWh
 
   /* ── Array config state ── */
@@ -775,17 +780,19 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   });
   const nextId = useRef(10);
 
-  /* ── Market params ── */
+  /* ── Market params (only fields unique to MarketAnalysis) ── */
   const [params, setParams] = useState({
-    lat: defaultLat,
-    lon: defaultLon,
-    annualLoadMWh: defaultLoad,
-    fixedPriceCt: defaultPriceCt,
     co2Price: 65,
     bessKWh: defaultBessKWh,
     bessKW: defaultBessKWh / 2,
     efficiency: 0.90,
   });
+
+  /* ── Derived from project (single source of truth) ── */
+  const lat = project?.energy?.latitude || 48.1;
+  const lon = project?.energy?.longitude || 11.6;
+  const annualLoadMWh = project?.energy?.stromverbrauch || 10000;
+  const fixedPriceCt = project?.energy?.strompreis || 22;
 
   /* ── API fetch states ── */
   const [solarData, setSolarData] = useState(null);
@@ -810,8 +817,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
     const timer = setTimeout(() => ctrl.abort(), 15000);
     try {
       const url = new URL("https://archive-api.open-meteo.com/v1/archive");
-      url.searchParams.set("latitude", params.lat);
-      url.searchParams.set("longitude", params.lon);
+      url.searchParams.set("latitude", lat);
+      url.searchParams.set("longitude", lon);
       url.searchParams.set("start_date", `${year}-01-01`);
       url.searchParams.set("end_date", `${year}-12-31`);
       url.searchParams.set("hourly", "direct_radiation,diffuse_radiation,direct_normal_irradiance,temperature_2m");
@@ -819,7 +826,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
       const res = await fetch(url.toString(), { signal: ctrl.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const parsed = parseOpenMeteoSolar(data, arrays, params.lat, params.lon, 1);
+      const parsed = parseOpenMeteoSolar(data, arrays, lat, lon, 1);
       if (parsed) {
         setSolarData(parsed);
         setSolarSource(`Open-Meteo ${year}`);
@@ -837,7 +844,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
       clearTimeout(timer);
       setSolarLoading(false);
     }
-  }, [params.lat, params.lon, arrays]);
+  }, [lat, lon, arrays]);
 
   /* ── Load price data ── */
   const fetchPrices = useCallback(async () => {
@@ -880,8 +887,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   /* ── Computed hourly PV ── */
   const pvHourly = useMemo(() => {
     if (solarData) return solarData;
-    return simulateSolarParametric(arrays, params.lat, params.lon, 1);
-  }, [solarData, arrays, params.lat, params.lon]);
+    return simulateSolarParametric(arrays, lat, lon, 1);
+  }, [solarData, arrays, lat, lon]);
 
   /* ── Computed hourly prices ── */
   const priceHourly = useMemo(() => {
@@ -891,8 +898,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
 
   /* ── Load profile ── */
   const loadHourly = useMemo(() => {
-    return buildLoadProfile(params.annualLoadMWh);
-  }, [params.annualLoadMWh]);
+    return buildLoadProfile(annualLoadMWh);
+  }, [annualLoadMWh]);
 
   /* ── Total PV capacity ── */
   const totalKWp = useMemo(() => arrays.reduce((s, a) => s + (Number(a.capacity) || 0), 0), [arrays]);
@@ -915,10 +922,10 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   /* ── Market results ── */
   const marketResults = useMemo(() => {
     return calcMarket(pvHourly, loadHourly, priceHourly, bessResult, {
-      fixedPriceCt: Number(params.fixedPriceCt) || 22,
+      fixedPriceCt: fixedPriceCt,
       co2Price: Number(params.co2Price) || 65,
     });
-  }, [pvHourly, loadHourly, priceHourly, bessResult, params.fixedPriceCt, params.co2Price]);
+  }, [pvHourly, loadHourly, priceHourly, bessResult, fixedPriceCt, params.co2Price]);
 
   /* ── Push results to parent (unified calc) ── */
   const onResultsRef = useRef(onResults);
@@ -968,7 +975,109 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   /* ─────────────────────────────────────────────
      Render
   ───────────────────────────────────────────── */
-  const headerEl = (
+  const isLight = !!inline;
+  const chartTheme = isLight ? CHART_LIGHT : CHART_DARK;
+
+  /* ── Themed styles (TS) — light for inline, dark (S) for modal ── */
+  const TS = isLight ? {
+    body: { padding: 0 },
+    section: undefined, // uses className="card" instead
+    sectionStyle: { marginBottom: "1rem" },
+    sectionTitle: { fontSize: "1rem", color: "var(--yellow-dim)", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" },
+    label: { display: "block", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", color: "var(--gray-text)", marginBottom: "0.4rem" },
+    input: { width: "100%", padding: "0.6rem 0.8rem", background: "var(--white)", border: "1px solid var(--border-dark)", borderRadius: "4px", color: "var(--black)", fontSize: "0.95rem" },
+    select: { width: "100%", padding: "0.6rem 0.8rem", background: "var(--white)", border: "1px solid var(--border-dark)", borderRadius: "4px", color: "var(--black)", fontSize: "0.95rem" },
+    kpiCard: undefined, // uses className="card"
+    kpiCardStyle: { textAlign: "center", padding: "1rem" },
+    kpiValue: { fontSize: "1.3rem", fontWeight: 700, color: "var(--yellow-dim)", marginBottom: "0.2rem" },
+    kpiLabel: { fontSize: "0.72rem", color: "var(--gray-text)", textTransform: "uppercase", letterSpacing: "0.5px" },
+    loadingBox: { display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem", background: "var(--white)", borderRadius: "8px", border: "1px solid var(--border)", color: "var(--gray-text)", fontSize: "0.85rem" },
+    errorBox: { padding: "0.75rem", background: "rgba(231,76,60,0.06)", borderRadius: "8px", border: "1px solid rgba(231,76,60,0.2)", color: "var(--red)", fontSize: "0.82rem" },
+    chartTitle: { fontSize: "0.82rem", color: "var(--gray-text)", marginBottom: "0.5rem" },
+    divider: { borderColor: "var(--border)", margin: "1rem 0" },
+    accentColor: "var(--yellow)",
+    iconColor: "var(--yellow-dim)",
+    totalColor: "var(--black)",
+    totalAccent: "var(--yellow-dim)",
+    tableLabel: "var(--gray-text)",
+    tableValue: "var(--black)",
+    tableAccent: "var(--yellow-dim)",
+    subHeadColor: "var(--black)",
+    sourcesBg: "var(--white)",
+    sourceLabel: "var(--black)",
+    sourceText: "var(--gray-text)",
+    spinnerColor: "var(--yellow)",
+    greenAccent: B.greenLight,
+    goldAccent: B.yellowDim,
+    softGray: "var(--gray-text)",
+    seasonBtn: (active) => ({
+      fontSize: "0.8rem",
+      background: active ? "var(--yellow)" : "var(--white)",
+      color: "var(--black)",
+      border: active ? "1px solid var(--yellow)" : "1px solid var(--border-dark)",
+      borderRadius: "6px", padding: "0.35rem 0.85rem",
+      cursor: "pointer", fontWeight: active ? "600" : "normal",
+      transition: "all 0.15s",
+    }),
+    arrayRow: {
+      display: "grid", gridTemplateColumns: "2fr 1fr 1.5fr 1.5fr 36px",
+      gap: "0.5rem", alignItems: "end", marginBottom: "0.5rem",
+    },
+  } : {
+    body: S.body,
+    section: S.section,
+    sectionStyle: null,
+    sectionTitle: S.sectionTitle,
+    label: S.label,
+    input: S.input,
+    select: S.select,
+    kpiCard: S.kpiCard,
+    kpiCardStyle: null,
+    kpiValue: S.kpiValue,
+    kpiLabel: S.kpiLabel,
+    loadingBox: S.loadingBox,
+    errorBox: S.errorBox,
+    chartTitle: S.chartTitle,
+    divider: S.divider,
+    accentColor: C.gold,
+    iconColor: C.gold,
+    totalColor: C.warmWhite,
+    totalAccent: C.gold,
+    tableLabel: C.softGray,
+    tableValue: C.warmWhite,
+    tableAccent: C.gold,
+    subHeadColor: C.warmWhite,
+    sourcesBg: C.navyMid,
+    sourceLabel: C.warmWhite,
+    sourceText: C.softGray,
+    spinnerColor: C.gold,
+    greenAccent: C.greenLight,
+    goldAccent: C.gold,
+    softGray: C.softGray,
+    seasonBtn: S.seasonBtn,
+    arrayRow: S.arrayRow,
+  };
+
+  /* Section wrapper helper */
+  const Sec = ({ children, style: extraStyle }) => isLight
+    ? <div className="card" style={{ marginBottom: "1rem", ...extraStyle }}>{children}</div>
+    : <div style={{ ...S.section, ...extraStyle }}>{children}</div>;
+
+  /* KPI card wrapper */
+  const KpiCard = ({ children }) => isLight
+    ? <div className="card" style={{ textAlign: "center", padding: "1rem" }}>{children}</div>
+    : <div style={S.kpiCard}>{children}</div>;
+
+  const headerEl = isLight ? (
+    <>
+      <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
+        <Icon name="chart" size={22} color="var(--yellow-dim)" /> Marktanalyse
+      </h2>
+      <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
+        Energiemarkt · Direktvermarktung · BESS-Optimierung
+      </p>
+    </>
+  ) : (
     <div style={S.header}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         <Icon name="chart" size={22} color={C.navyDeep} />
@@ -981,37 +1090,35 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
           </p>
         </div>
       </div>
-      {!inline && (
-        <button style={S.closeBtn} onClick={onClose} aria-label="Schließen">
-          <Icon name="arrowLeft" size={18} color={C.navyDeep} />
-        </button>
-      )}
+      <button style={S.closeBtn} onClick={onClose} aria-label="Schließen">
+        <Icon name="arrowLeft" size={18} color={C.navyDeep} />
+      </button>
     </div>
   );
 
   const bodyContent = (
-    <div style={S.body}>
+    <div style={TS.body}>
 
           {/* ── Datenquellen-Status ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
+          <div className={isLight ? "grid-2" : undefined} style={isLight ? { marginBottom: "1rem" } : { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
             {/* Solar */}
             <div>
               {solarLoading && (
-                <div style={S.loadingBox}>
-                  <div style={{ width: 14, height: 14, border: `2px solid ${C.gold}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                <div style={TS.loadingBox}>
+                  <div style={{ width: 14, height: 14, border: `2px solid ${TS.spinnerColor}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                   Lade Solardaten (Open-Meteo)…
                 </div>
               )}
-              {!solarLoading && solarError && <div style={S.errorBox}><Icon name="bolt" size={12} /> {solarError}</div>}
+              {!solarLoading && solarError && <div style={TS.errorBox}><Icon name="bolt" size={12} /> {solarError}</div>}
               {!solarLoading && !solarError && solarData && (
-                <div style={{ ...S.loadingBox, borderLeft: `3px solid ${C.greenLight}` }}>
-                  <Icon name="sun" size={14} color={C.greenLight} />
+                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${TS.greenAccent}` }}>
+                  <Icon name="sun" size={14} color={TS.greenAccent} />
                   Solardaten: {solarSource}
                 </div>
               )}
               {!solarLoading && !solarData && !solarError && (
-                <div style={{ ...S.loadingBox, borderLeft: `3px solid ${C.softGray}` }}>
-                  <Icon name="sun" size={14} color={C.softGray} />
+                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${isLight ? "var(--gray-mid)" : C.softGray}` }}>
+                  <Icon name="sun" size={14} color={isLight ? B.grayText : C.softGray} />
                   Parametrisches Modell aktiv
                 </div>
               )}
@@ -1019,21 +1126,21 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
             {/* Price */}
             <div>
               {priceLoading && (
-                <div style={S.loadingBox}>
-                  <div style={{ width: 14, height: 14, border: `2px solid ${C.gold}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                <div style={TS.loadingBox}>
+                  <div style={{ width: 14, height: 14, border: `2px solid ${TS.spinnerColor}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                   Lade Spotpreise (energy-charts)…
                 </div>
               )}
-              {!priceLoading && priceError && <div style={S.errorBox}><Icon name="bolt" size={12} /> {priceError}</div>}
+              {!priceLoading && priceError && <div style={TS.errorBox}><Icon name="bolt" size={12} /> {priceError}</div>}
               {!priceLoading && !priceError && priceData && (
-                <div style={{ ...S.loadingBox, borderLeft: `3px solid ${C.gold}` }}>
-                  <Icon name="money" size={14} color={C.gold} />
+                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${TS.goldAccent}` }}>
+                  <Icon name="money" size={14} color={TS.goldAccent} />
                   Preisdaten: {priceSource}
                 </div>
               )}
               {!priceLoading && !priceData && !priceError && (
-                <div style={{ ...S.loadingBox, borderLeft: `3px solid ${C.softGray}` }}>
-                  <Icon name="money" size={14} color={C.softGray} />
+                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${isLight ? "var(--gray-mid)" : C.softGray}` }}>
+                  <Icon name="money" size={14} color={isLight ? B.grayText : C.softGray} />
                   Parametrischer Preisindex aktiv
                 </div>
               )}
@@ -1041,31 +1148,31 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
           </div>
 
           {/* ── PV-Array-Konfiguration ── */}
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="sun" size={16} color={C.gold} />
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="sun" size={16} color={TS.iconColor} />
               PV-Array-Konfiguration
-              <span style={{ marginLeft: "auto", fontFamily: "Calibri, sans-serif", fontSize: "0.82rem", color: C.warmWhite }}>
-                Gesamt: <strong style={{ color: C.gold }}>{fmtNum(totalKWp, 1)} kWp</strong>
+              <span style={{ marginLeft: "auto", fontSize: "0.82rem", color: TS.totalColor }}>
+                Gesamt: <strong style={{ color: TS.totalAccent }}>{fmtNum(totalKWp, 1)} kWp</strong>
               </span>
             </div>
             {/* Header row */}
-            <div style={{ ...S.arrayRow, marginBottom: "0.25rem" }}>
-              <span style={S.label}>Bezeichnung</span>
-              <span style={S.label}>Azimut</span>
-              <span style={S.label}>Neigung (°)</span>
-              <span style={S.label}>Kapazität (kWp)</span>
+            <div style={{ ...TS.arrayRow, marginBottom: "0.25rem" }}>
+              <span style={TS.label}>Bezeichnung</span>
+              <span style={TS.label}>Azimut</span>
+              <span style={TS.label}>Neigung (°)</span>
+              <span style={TS.label}>Kapazität (kWp)</span>
               <span />
             </div>
             {arrays.map(arr => (
-              <div key={arr.id} style={S.arrayRow}>
+              <div key={arr.id} style={TS.arrayRow}>
                 <input
-                  style={S.input}
+                  style={TS.input}
                   value={arr.label}
                   onChange={ev => updateArray(arr.id, "label", ev.target.value)}
                   placeholder="Bezeichnung"
                 />
-                <select style={S.select} value={arr.azimuth}
+                <select style={TS.select} value={arr.azimuth}
                   onChange={ev => updateArray(arr.id, "azimuth", Number(ev.target.value))}>
                   {AZIMUTH_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1076,80 +1183,94 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                     type="range" min={0} max={90} step={1}
                     value={arr.tilt}
                     onChange={ev => updateArray(arr.id, "tilt", Number(ev.target.value))}
-                    style={{ width: "100%", accentColor: C.gold }}
+                    style={{ width: "100%", accentColor: TS.accentColor }}
                   />
-                  <span style={{ ...S.label, marginBottom: 0, textAlign: "center" }}>{arr.tilt}°</span>
+                  <span style={{ ...TS.label, marginBottom: 0, textAlign: "center" }}>{arr.tilt}°</span>
                 </div>
                 <input
-                  type="number" style={S.input} min={0} step={0.1}
+                  type="number" style={TS.input} min={0} step={0.1}
                   value={arr.capacity}
                   onChange={ev => updateArray(arr.id, "capacity", Number(ev.target.value))}
                 />
-                <button style={S.removeBtn} onClick={() => removeArray(arr.id)} aria-label="Array entfernen" title="Entfernen">
-                  <Icon name="trash" size={13} color={C.red} />
-                </button>
+                {isLight ? (
+                  <button className="btn btn-danger btn-sm" onClick={() => removeArray(arr.id)} aria-label="Array entfernen" title="Entfernen"
+                    style={{ borderRadius: "50%", width: 32, height: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="trash" size={13} />
+                  </button>
+                ) : (
+                  <button style={S.removeBtn} onClick={() => removeArray(arr.id)} aria-label="Array entfernen" title="Entfernen">
+                    <Icon name="trash" size={13} color={C.red} />
+                  </button>
+                )}
               </div>
             ))}
-            <button style={S.addBtn} onClick={addArray}>
-              <Icon name="plus" size={13} color={C.gold} />
-              Array hinzufügen
-            </button>
-            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <button
-                style={{ ...S.addBtn, borderStyle: "solid", background: C.navyMid }}
-                onClick={() => { fetchSolar(); }}
-              >
-                <Icon name="sun" size={13} color={C.gold} />
-                Solardaten neu laden
+            {isLight ? (
+              <button className="btn btn-secondary btn-sm" onClick={addArray} style={{ marginTop: "0.5rem" }}>
+                <Icon name="plus" size={13} /> Array hinzufügen
               </button>
+            ) : (
+              <button style={S.addBtn} onClick={addArray}>
+                <Icon name="plus" size={13} color={C.gold} />
+                Array hinzufügen
+              </button>
+            )}
+            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {isLight ? (
+                <button className="btn btn-secondary btn-sm" onClick={() => { fetchSolar(); }}>
+                  <Icon name="sun" size={13} /> Solardaten neu laden
+                </button>
+              ) : (
+                <button
+                  style={{ ...S.addBtn, borderStyle: "solid", background: C.navyMid }}
+                  onClick={() => { fetchSolar(); }}
+                >
+                  <Icon name="sun" size={13} color={C.gold} />
+                  Solardaten neu laden
+                </button>
+              )}
             </div>
-          </div>
+          </Sec>
 
-          {/* ── Markt-Parameter ── */}
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="settings" size={16} color={C.gold} />
-              Markt-Parameter
+          {/* ── Parameter ── */}
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="settings" size={16} color={TS.iconColor} />
+              Parameter
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+            {/* Read-only project data summary */}
+            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1rem", padding: "0.75rem", background: isLight ? "var(--gray-light)" : C.navyMid, borderRadius: "6px", fontSize: "0.82rem" }}>
+              <span style={{ color: isLight ? "var(--gray-text)" : C.softGray }}>
+                <strong style={{ color: isLight ? "var(--black)" : C.warmWhite }}>Standort:</strong> {lat.toFixed(1)}°N, {lon.toFixed(1)}°E
+              </span>
+              <span style={{ color: isLight ? "var(--gray-text)" : C.softGray }}>
+                <strong style={{ color: isLight ? "var(--black)" : C.warmWhite }}>Verbrauch:</strong> {Number(annualLoadMWh).toLocaleString("de-DE")} MWh/a
+              </span>
+              <span style={{ color: isLight ? "var(--gray-text)" : C.softGray }}>
+                <strong style={{ color: isLight ? "var(--black)" : C.warmWhite }}>Strompreis:</strong> {fixedPriceCt} ct/kWh
+              </span>
+            </div>
+
+            {/* CO₂ price — unique to market analysis */}
+            <div className={isLight ? "grid-3" : undefined} style={isLight ? undefined : { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
               <div>
-                <label style={S.label}>Breitengrad</label>
-                <input type="number" style={S.input} step="0.01"
-                  value={params.lat} onChange={ev => setParam("lat", Number(ev.target.value))} />
-              </div>
-              <div>
-                <label style={S.label}>Längengrad</label>
-                <input type="number" style={S.input} step="0.01"
-                  value={params.lon} onChange={ev => setParam("lon", Number(ev.target.value))} />
-              </div>
-              <div>
-                <label style={S.label}>Jahresverbrauch (MWh)</label>
-                <input type="number" style={S.input} min={0} step={100}
-                  value={params.annualLoadMWh}
-                  onChange={ev => setParam("annualLoadMWh", Number(ev.target.value))} />
-              </div>
-              <div>
-                <label style={S.label}>Festpreis-Referenz (ct/kWh)</label>
-                <input type="number" style={S.input} min={0} step={0.5}
-                  value={params.fixedPriceCt}
-                  onChange={ev => setParam("fixedPriceCt", Number(ev.target.value))} />
-              </div>
-              <div>
-                <label style={S.label}>CO₂-Zertifikatspreis (€/t)</label>
-                <input type="number" style={S.input} min={0} step={5}
+                <label style={TS.label}>CO₂-Zertifikatspreis (€/t)</label>
+                <input type="number" style={TS.input} min={0} step={5}
                   value={params.co2Price}
                   onChange={ev => setParam("co2Price", Number(ev.target.value))} />
               </div>
             </div>
-            <hr style={S.divider} />
-            <div style={{ ...S.sectionTitle, fontSize: "0.88rem", marginBottom: "0.6rem" }}>
-              <Icon name="battery" size={14} color={C.gold} />
+
+            <hr style={TS.divider} />
+
+            {/* BESS subsection */}
+            <div style={{ ...TS.sectionTitle, fontSize: "0.88rem", marginBottom: "0.6rem" }}>
+              <Icon name="battery" size={14} color={TS.iconColor} />
               BESS-Parameter
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+            <div className={isLight ? "grid-3" : undefined} style={isLight ? undefined : { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
               <div>
-                <label style={S.label}>Kapazität (kWh)</label>
-                <input type="number" style={S.input} min={0} step={100}
+                <label style={TS.label}>Kapazität (kWh)</label>
+                <input type="number" style={TS.input} min={0} step={100}
                   value={params.bessKWh}
                   onChange={ev => {
                     const v = Number(ev.target.value);
@@ -1157,33 +1278,33 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                   }} />
               </div>
               <div>
-                <label style={S.label}>Leistung (kW)</label>
-                <input type="number" style={S.input} min={0} step={50}
+                <label style={TS.label}>Leistung (kW)</label>
+                <input type="number" style={TS.input} min={0} step={50}
                   value={params.bessKW}
                   onChange={ev => setParam("bessKW", Number(ev.target.value))} />
               </div>
               <div>
-                <label style={S.label}>Round-Trip-Effizienz</label>
+                <label style={TS.label}>Round-Trip-Effizienz</label>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
                   <input type="range" min={0.85} max={0.95} step={0.01}
                     value={params.efficiency}
                     onChange={ev => setParam("efficiency", Number(ev.target.value))}
-                    style={{ accentColor: C.gold }} />
-                  <span style={{ ...S.label, marginBottom: 0, textAlign: "center" }}>
+                    style={{ accentColor: TS.accentColor }} />
+                  <span style={{ ...TS.label, marginBottom: 0, textAlign: "center" }}>
                     {(params.efficiency * 100).toFixed(0)} %
                   </span>
                 </div>
               </div>
             </div>
-          </div>
+          </Sec>
 
           {/* ── KPI Dashboard ── */}
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="target" size={16} color={C.gold} />
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="target" size={16} color={TS.iconColor} />
               KPI-Übersicht
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.6rem" }}>
+            <div className={isLight ? "grid-4" : undefined} style={isLight ? { gap: "0.6rem" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.6rem" }}>
               {[
                 {
                   label: "PV-Ertrag",
@@ -1221,23 +1342,27 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                   value: bessResult ? `${fmtNum(bessResult.totalCycles, 0)} /a` : "— /a",
                 },
               ].map((kpi, i) => (
-                <div key={i} style={S.kpiCard}>
-                  <div style={S.kpiValue}>{kpi.value}</div>
-                  <div style={S.kpiLabel}>{kpi.label}</div>
-                  {kpi.sub && <div style={{ ...S.kpiLabel, fontSize: "0.65rem", color: C.gold }}>{kpi.sub}</div>}
-                </div>
+                <KpiCard key={i}>
+                  <div style={TS.kpiValue}>{kpi.value}</div>
+                  <div style={TS.kpiLabel}>{kpi.label}</div>
+                  {kpi.sub && <div style={{ ...TS.kpiLabel, fontSize: "0.65rem", color: TS.totalAccent }}>{kpi.sub}</div>}
+                </KpiCard>
               ))}
             </div>
-          </div>
+          </Sec>
 
           {/* ── Season selector ── */}
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", alignItems: "center" }}>
-            <span style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.82rem", color: C.softGray, marginRight: "0.25rem" }}>Saison:</span>
+            <span style={{ fontSize: "0.82rem", color: TS.softGray, marginRight: "0.25rem" }}>Saison:</span>
             {[
               { key: "sommer", label: "Sommer (Apr–Sep)" },
               { key: "winter", label: "Winter (Okt–Mär)" },
               { key: "gesamt", label: "Gesamt (Jahr)" },
-            ].map(s => (
+            ].map(s => isLight ? (
+              <button key={s.key} className="btn btn-sm" style={TS.seasonBtn(season === s.key)} onClick={() => setSeason(s.key)}>
+                {s.label}
+              </button>
+            ) : (
               <button key={s.key} style={S.seasonBtn(season === s.key)} onClick={() => setSeason(s.key)}>
                 {s.label}
               </button>
@@ -1245,58 +1370,58 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
           </div>
 
           {/* ── Charts ── */}
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="chart" size={16} color={C.gold} />
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="chart" size={16} color={TS.iconColor} />
               Tagesprofil — Durchschnitt
             </div>
-            <p style={S.chartTitle}>Stündliche PV-Erzeugung vs. Last + Spotpreis (kWh / €/MWh)</p>
-            <ChartDailyProfile data={daily} season={season} />
-          </div>
+            <p style={TS.chartTitle}>Stündliche PV-Erzeugung vs. Last + Spotpreis (kWh / €/MWh)</p>
+            <ChartDailyProfile data={daily} season={season} theme={chartTheme} />
+          </Sec>
 
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="chart" size={16} color={C.gold} />
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="chart" size={16} color={TS.iconColor} />
               Monatsprofil — Jahresübersicht
             </div>
-            <p style={S.chartTitle}>PV / Last / Eigenverbrauch in MWh + Ø Spotpreis €/MWh</p>
-            <ChartMonthly monthly={monthly} />
-          </div>
+            <p style={TS.chartTitle}>PV / Last / Eigenverbrauch in MWh + Ø Spotpreis €/MWh</p>
+            <ChartMonthly monthly={monthly} theme={chartTheme} />
+          </Sec>
 
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="money" size={16} color={C.gold} />
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="money" size={16} color={TS.iconColor} />
               Erlös- und Beschaffungsvergleich
             </div>
-            <p style={S.chartTitle}>EEG vs. Direktvermarktung vs. DV+BESS · Festpreis vs. Spot vs. Spot+BESS (€/a)</p>
-            <ChartComparisonBars results={marketResults} />
-          </div>
+            <p style={TS.chartTitle}>EEG vs. Direktvermarktung vs. DV+BESS · Festpreis vs. Spot vs. Spot+BESS (€/a)</p>
+            <ChartComparisonBars results={marketResults} theme={chartTheme} />
+          </Sec>
 
           {bessResult && (
-            <div style={S.section}>
-              <div style={S.sectionTitle}>
-                <Icon name="battery" size={16} color={C.gold} />
+            <Sec>
+              <div style={TS.sectionTitle}>
+                <Icon name="battery" size={16} color={TS.iconColor} />
                 BESS Ladezustand — Jahresverlauf
               </div>
-              <p style={S.chartTitle}>
+              <p style={TS.chartTitle}>
                 Tages-Ø SoC (kWh) · Zyklen: {fmtNum(bessResult.totalCycles, 0)} /a ·
                 Geladen: {fmtNum(bessResult.totalCharged / 1000, 0)} MWh ·
                 Entladen: {fmtNum(bessResult.totalDischarged / 1000, 0)} MWh
               </p>
-              <ChartBessSoc socData={socData} bessKWh={params.bessKWh} />
-            </div>
+              <ChartBessSoc socData={socData} bessKWh={params.bessKWh} theme={chartTheme} />
+            </Sec>
           )}
 
           {/* ── Detailauswertung ── */}
-          <div style={S.section}>
-            <div style={S.sectionTitle}>
-              <Icon name="grid" size={16} color={C.gold} />
+          <Sec>
+            <div style={TS.sectionTitle}>
+              <Icon name="grid" size={16} color={TS.iconColor} />
               Detailauswertung
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div className={isLight ? "grid-2" : undefined} style={isLight ? { gap: "1rem" } : { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               {/* Einspeisung */}
               <div>
-                <p style={{ ...S.label, fontSize: "0.85rem", color: C.warmWhite, marginBottom: "0.5rem" }}>Einspeisestrategie</p>
+                <p style={{ ...TS.label, fontSize: "0.85rem", color: TS.subHeadColor, marginBottom: "0.5rem" }}>Einspeisestrategie</p>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody>
                     {[
@@ -1308,8 +1433,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                       { label: "Direktvermarktung (mit BESS)", value: fmtEuro(marketResults.dvBessRevenue), accent: true },
                     ].map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: C.softGray, padding: "0.25rem 0" }}>{row.label}</td>
-                        <td style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: row.accent ? C.gold : C.warmWhite, textAlign: "right", padding: "0.25rem 0" }}>{row.value}</td>
+                        <td style={{ fontSize: "0.8rem", color: TS.tableLabel, padding: "0.25rem 0" }}>{row.label}</td>
+                        <td style={{ fontSize: "0.8rem", color: row.accent ? TS.tableAccent : TS.tableValue, textAlign: "right", padding: "0.25rem 0" }}>{row.value}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1317,40 +1442,40 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
               </div>
               {/* Beschaffung */}
               <div>
-                <p style={{ ...S.label, fontSize: "0.85rem", color: C.warmWhite, marginBottom: "0.5rem" }}>Strombeschaffung</p>
+                <p style={{ ...TS.label, fontSize: "0.85rem", color: TS.subHeadColor, marginBottom: "0.5rem" }}>Strombeschaffung</p>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody>
                     {[
-                      { label: "Jahresverbrauch", value: `${fmtNum(params.annualLoadMWh, 0)} MWh/a` },
+                      { label: "Jahresverbrauch", value: `${fmtNum(annualLoadMWh, 0)} MWh/a` },
                       { label: "Restbezug (nach PV)", value: `${fmtNum(marketResults.deficit / 1000, 0)} MWh/a` },
                       { label: "Beschaffung Festpreis (alt)", value: fmtEuro(marketResults.oldProcurement) },
                       { label: "Beschaffung Spot (neu)", value: fmtEuro(marketResults.newProcurement) },
                       { label: "Beschaffungsersparnis", value: fmtEuro(Math.abs(marketResults.procurementSavings)), accent: true },
-                      { label: "CO₂-Vermeidung × {params.co2Price} €/t", value: fmtEuro(marketResults.co2Avoided * params.co2Price), accent: true },
+                      { label: `CO₂-Vermeidung × ${params.co2Price} €/t`, value: fmtEuro(marketResults.co2Avoided * params.co2Price), accent: true },
                     ].map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: C.softGray, padding: "0.25rem 0" }}>{row.label}</td>
-                        <td style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: row.accent ? C.gold : C.warmWhite, textAlign: "right", padding: "0.25rem 0" }}>{row.value}</td>
+                        <td style={{ fontSize: "0.8rem", color: TS.tableLabel, padding: "0.25rem 0" }}>{row.label}</td>
+                        <td style={{ fontSize: "0.8rem", color: row.accent ? TS.tableAccent : TS.tableValue, textAlign: "right", padding: "0.25rem 0" }}>{row.value}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
+          </Sec>
 
           {/* ── Datenquellen ── */}
-          <div style={{ ...S.section, background: C.navyMid, fontSize: "0.75rem", fontFamily: "Calibri, sans-serif", color: C.softGray }}>
+          <Sec style={isLight ? { background: "var(--white)", fontSize: "0.75rem", color: "var(--gray-text)" } : { background: C.navyMid, fontSize: "0.75rem", fontFamily: "Calibri, sans-serif", color: C.softGray }}>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <span><strong style={{ color: C.warmWhite }}>Solardaten:</strong> {solarSource}</span>
-              <span><strong style={{ color: C.warmWhite }}>Spotpreise:</strong> {priceSource}</span>
-              <span><strong style={{ color: C.warmWhite }}>Netzentgelte:</strong> 6,5 ct/kWh (pauschal)</span>
-              <span><strong style={{ color: C.warmWhite }}>Umlagen:</strong> 2,5 ct/kWh (pauschal)</span>
-              <span><strong style={{ color: C.warmWhite }}>CO₂-Faktor Netz:</strong> 400 g/kWh</span>
-              <span><strong style={{ color: C.warmWhite }}>EEG-Tarif:</strong> 7,5 ct/kWh</span>
-              <span><strong style={{ color: C.warmWhite }}>DV-Vermarktungsgebühr:</strong> 0,3 ct/kWh</span>
+              <span><strong style={{ color: TS.sourceLabel }}>Solardaten:</strong> {solarSource}</span>
+              <span><strong style={{ color: TS.sourceLabel }}>Spotpreise:</strong> {priceSource}</span>
+              <span><strong style={{ color: TS.sourceLabel }}>Netzentgelte:</strong> 6,5 ct/kWh (pauschal)</span>
+              <span><strong style={{ color: TS.sourceLabel }}>Umlagen:</strong> 2,5 ct/kWh (pauschal)</span>
+              <span><strong style={{ color: TS.sourceLabel }}>CO₂-Faktor Netz:</strong> 400 g/kWh</span>
+              <span><strong style={{ color: TS.sourceLabel }}>EEG-Tarif:</strong> 7,5 ct/kWh</span>
+              <span><strong style={{ color: TS.sourceLabel }}>DV-Vermarktungsgebühr:</strong> 0,3 ct/kWh</span>
             </div>
-          </div>
+          </Sec>
 
     </div>
   );
@@ -1359,7 +1484,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
 
   if (inline) {
     return (
-      <div className="fade-in" style={{ borderRadius: 12, overflow: "hidden", background: C.navyDeep, border: `1px solid ${C.navyLight}` }}>
+      <div className="fade-in">
         {headerEl}
         {bodyContent}
         {spinnerCss}

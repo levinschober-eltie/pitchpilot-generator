@@ -28,13 +28,13 @@ export default function Settings() {
   return (
     <div className="fade-in" style={{ maxWidth: 600 }}>
       <h2 style={{ fontSize: "1.3rem", marginBottom: "1.5rem" }}>
-        <Icon name="settings" size={22} color="#FFCE00" /> Einstellungen
+        <Icon name="settings" size={22} color="var(--yellow)" /> Einstellungen
       </h2>
 
       {/* Claude API Key */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Icon name="sparkle" size={18} color="#FFCE00" /> Claude API
+          <Icon name="sparkle" size={18} color="var(--yellow)" /> Claude API
         </h3>
 
         <div style={{ fontSize: "0.85rem", color: "var(--gray-text)", marginBottom: "1rem", lineHeight: 1.5 }}>
@@ -45,7 +45,7 @@ export default function Settings() {
         {hasKey ? (
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <Icon name="check" size={16} color="#2D8C4E" />
+              <Icon name="check" size={16} color="var(--green)" />
               <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "0.85rem" }}>
                 API-Key ist gesetzt
               </span>
@@ -81,7 +81,7 @@ export default function Settings() {
       {/* SolarStudio Integration (placeholder) */}
       <div className="card" style={{ opacity: 0.6 }}>
         <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Icon name="sun" size={18} color="#666666" /> SolarStudio-Anbindung
+          <Icon name="sun" size={18} color="var(--gray-text)" /> SolarStudio-Anbindung
         </h3>
         <div style={{ fontSize: "0.85rem", color: "var(--gray-text)", lineHeight: 1.5 }}>
           Automatischer Import von 3D-Planungsdaten aus SolarStudio.

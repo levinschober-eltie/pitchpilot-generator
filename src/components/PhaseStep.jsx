@@ -98,7 +98,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="target" size={22} color="#FFCE00" /> Phasen & Konfiguration
+        <Icon name="target" size={22} color="var(--yellow)" /> Phasen & Konfiguration
       </h2>
       <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Wähle die Transformationsphasen und konfiguriere die Parameter.
@@ -113,7 +113,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
               onClick={() => togglePhase(i)}
             >
               <div className="toggle-switch" />
-              <Icon name={PHASE_ICONS[p.key] || "target"} size={20} color={p.enabled ? "#FFCE00" : "#666666"} />
+              <Icon name={PHASE_ICONS[p.key] || "target"} size={20} color={p.enabled ? "var(--yellow)" : "var(--gray-text)"} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>
                   {["I", "II", "III", "IV", "V", "VI"][i]}. {p.label}
@@ -126,7 +126,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
               {p.enabled && calc && investMap[p.key] > 0 && (
                 <span style={{
                   fontSize: "0.7rem", fontWeight: 700,
-                  color: "#222222", background: "rgba(255,206,0,0.15)",
+                  color: "var(--black)", background: "rgba(255,206,0,0.15)",
                   padding: "0.2rem 0.5rem", borderRadius: "1rem", whiteSpace: "nowrap",
                 }}>
                   {fmtEuro(investMap[p.key])}
@@ -158,7 +158,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
 
       {/* Finance section */}
       <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <Icon name="money" size={18} color="#FFCE00" /> Finanzierung
+        <Icon name="money" size={18} color="var(--yellow)" /> Finanzierung
       </h3>
       <div className="card">
         <SliderGroup
@@ -178,7 +178,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
             ].map((item) => (
               <div key={item.label} style={{ fontSize: "0.75rem" }}>
                 <span style={{ color: "var(--gray-text)" }}>{item.label}: </span>
-                <span style={{ fontWeight: 700, color: "#222222" }}>{item.value}</span>
+                <span style={{ fontWeight: 700, color: "var(--black)" }}>{item.value}</span>
               </div>
             ))}
           </div>

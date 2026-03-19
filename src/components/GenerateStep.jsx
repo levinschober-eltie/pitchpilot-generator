@@ -65,7 +65,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="sparkle" size={22} color="#FFCE00" /> Pitch generieren
+        <Icon name="sparkle" size={22} color="var(--yellow)" /> Pitch generieren
       </h2>
       <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Vorschau der berechneten Werte und Generierung der Präsentation.
@@ -74,18 +74,18 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
       {/* KPI Preview */}
       <div className="grid-4" style={{ marginBottom: "2rem" }}>
         {[
-          { label: "Gesamt-PV", value: `${fmtNum(calc.totalPV, 1)} MWp`, icon: "sun", color: "#2D8C4E" },
-          { label: "Gesamtertrag/a", value: fmtEuro(calc.gesamtertrag), icon: "money", color: "#FFCE00" },
-          { label: "CO₂-Reduktion", value: `${fmtNum(calc.co2Gesamt)} t/a`, icon: "leaf", color: "#2D8C4E" },
-          { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, icon: "clock", color: "#E6B800" },
-          { label: "Investition", value: fmtEuro(calc.investGesamt), icon: "chart", color: "#666666" },
-          { label: "Autarkie", value: `${calc.autarkie}%`, icon: "shield", color: "#2D8C4E" },
-          { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, icon: "money", color: "#E6B800" },
-          { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, icon: "shield", color: calc.dscr >= 1.2 ? "#2D8C4E" : "#E74C3C" },
-          { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, icon: "money", color: "#666666" },
-          { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, icon: "chart", color: calc.cfNachSchuldendienst > 0 ? "#2D8C4E" : "#E74C3C" },
-          { label: "Eigenverbrauch", value: `${calc.eigenverbrauchsquote}%`, icon: "bolt", color: "#2D8C4E" },
-          { label: "Phasen", value: `${enabledPhases.length}`, icon: "target", color: "#FFCE00" },
+          { label: "Gesamt-PV", value: `${fmtNum(calc.totalPV, 1)} MWp`, icon: "sun", color: "var(--green)" },
+          { label: "Gesamtertrag/a", value: fmtEuro(calc.gesamtertrag), icon: "money", color: "var(--yellow)" },
+          { label: "CO₂-Reduktion", value: `${fmtNum(calc.co2Gesamt)} t/a`, icon: "leaf", color: "var(--green)" },
+          { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, icon: "clock", color: "var(--yellow-dim)" },
+          { label: "Investition", value: fmtEuro(calc.investGesamt), icon: "chart", color: "var(--gray-text)" },
+          { label: "Autarkie", value: `${calc.autarkie}%`, icon: "shield", color: "var(--green)" },
+          { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, icon: "money", color: "var(--yellow-dim)" },
+          { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, icon: "shield", color: calc.dscr >= 1.2 ? "var(--green)" : "var(--red)" },
+          { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, icon: "money", color: "var(--gray-text)" },
+          { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, icon: "chart", color: calc.cfNachSchuldendienst > 0 ? "var(--green)" : "var(--red)" },
+          { label: "Eigenverbrauch", value: `${calc.eigenverbrauchsquote}%`, icon: "bolt", color: "var(--green)" },
+          { label: "Phasen", value: `${enabledPhases.length}`, icon: "target", color: "var(--yellow)" },
         ].map((kpi) => (
           <div key={kpi.label} className="card" style={{ textAlign: "center", padding: "1rem" }}>
             <Icon name={kpi.icon} size={20} color={kpi.color} />
@@ -159,7 +159,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
       {/* Success state */}
       {project.generated && !generating && (
         <div className="card" style={{ marginTop: "1.5rem", textAlign: "center", background: "rgba(45,140,78,0.06)", border: "1px solid rgba(45,140,78,0.2)" }}>
-          <Icon name="check" size={24} color="#2D8C4E" />
+          <Icon name="check" size={24} color="var(--green)" />
           <div style={{ fontWeight: 700, marginTop: "0.5rem", color: "var(--green)" }}>
             Pitch erfolgreich generiert!
           </div>

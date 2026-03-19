@@ -57,7 +57,7 @@ export default function EnergyStep({ data, onChange }) {
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="bolt" size={22} color="#FFCE00" /> Energieprofil
+        <Icon name="bolt" size={22} color="var(--yellow)" /> Energieprofil
       </h2>
       <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Aktuelle Energieverbräuche und -kosten des Standorts.
@@ -66,7 +66,7 @@ export default function EnergyStep({ data, onChange }) {
       {/* CSV Upload */}
       <div className="card" style={{ marginBottom: "1.5rem", border: "1px dashed rgba(255,206,0,0.3)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <Icon name="chart" size={20} color="#FFCE00" />
+          <Icon name="chart" size={20} color="var(--yellow)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>
               Lastgang-Upload (optional)
@@ -92,7 +92,7 @@ export default function EnergyStep({ data, onChange }) {
         </div>
         {d.lastgangFile && (
           <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--green-light)" }}>
-            <Icon name="check" size={14} color="#4CAF7D" /> {d.lastgangFile}
+            <Icon name="check" size={14} color="var(--green-light)" /> {d.lastgangFile}
             {csvResult && (
               <span style={{ color: "var(--gray-text)", marginLeft: "0.75rem" }}>
                 {csvResult.dataPoints.toLocaleString("de-DE")} Datenpunkte · {csvResult.annualMWh.toLocaleString("de-DE")} MWh/a · Peak {csvResult.peakKW.toLocaleString("de-DE")} kW
