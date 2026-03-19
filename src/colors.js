@@ -35,8 +35,26 @@ export const C = {
   goldDim: "#B8923A",
 
   warmWhite: "#F5F5F0",
+  white: "#FFFFFF",
+  lightGray: "#EAEAE5",
+  midGray: "#B0B0A6",
   softGray: "#B0B0A6",
   darkText: "#2B2B2B",
+
+  // PhaseVisuals nature colors
+  forest: "#1A4D2E",
+  forestMid: "#245E3A",
+  forestLight: "#2E7A4E",
+  forestDark: "#0F3520",
+  warmOrange: "#E8785A",
+  warmOrangeLight: "#F4A589",
+
+  // PhaseVisuals sky/atmosphere
+  blue: "rgba(100,170,255,0.4)",
+  skyTop: "#0D1B30",
+  skyMid: "#152540",
+  coolBlue: "#4A8EC2",
+  coolBlueDim: "#2A5E8A",
 
   red: "#E74C3C",
 };

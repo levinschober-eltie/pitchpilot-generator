@@ -7,6 +7,7 @@ import Icon from "./Icons";
 
 const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
 const PdfExport = lazy(() => import("./PdfExport"));
+const PhaseVisual = lazy(() => import("./PhaseVisuals"));
 
 /* ── Style Constants ── */
 const F = "Calibri, sans-serif";
@@ -1037,15 +1038,20 @@ export default function PresentationRenderer() {
               <PhaseContent phase={currentPhase} color={currentColor} liveKpis={liveKpis} />
             )}
           </div>
-          <div style={{ textAlign: "center", position: "sticky", top: 80 }}>
-            <ScoreRing
-              score={isFinal ? calc?.autarkie : (currentPhase?.independenceScore ?? calc?.autarkie)}
-              color={currentColor}
-              label={isFinal ? "Strategischer Standortvorteil" : currentPhase?.independenceLabel}
-            />
+          <div style={{ position: "sticky", top: 80 }}>
+            {/* Phase Illustration (Eckart-Style SVG) */}
+            <Suspense fallback={
+              <div style={{ width: "100%", aspectRatio: "400/320", borderRadius: 14, background: "linear-gradient(150deg, rgba(27,42,74,0.75), rgba(30,48,80,0.45))" }} />
+            }>
+              <PhaseVisual
+                phaseNum={isFinal ? "∑" : (currentPhase?.num || "I")}
+                score={isFinal ? (calc?.autarkie || 0) : (currentPhase?.independenceScore ?? calc?.autarkie ?? 0)}
+              />
+            </Suspense>
+
             {/* Live invest for current phase */}
             {!isFinal && calc && currentPhaseKey && (
-              <div style={{ marginTop: "0.75rem" }}>
+              <div style={{ marginTop: "0.75rem", textAlign: "center" }}>
                 <div style={{ fontFamily: F, fontSize: "0.6rem", letterSpacing: "1px", textTransform: "uppercase", color: C.softGray }}>Invest</div>
                 <div style={{ fontFamily: F, fontSize: "0.95rem", fontWeight: 700, color: currentColor }}>
                   {fmtEuro(calc[INVEST_MAP[currentPhaseKey]] || 0)}
@@ -1054,7 +1060,7 @@ export default function PresentationRenderer() {
             )}
             {/* Cumulative progress pills */}
             {!isFinal && active > 0 && (
-              <div style={{ marginTop: "1rem", textAlign: "left" }}>
+              <div style={{ marginTop: "0.75rem", textAlign: "left" }}>
                 <div style={{ fontFamily: F, fontSize: "0.6rem", letterSpacing: "2px", textTransform: "uppercase", fontWeight: 700, color: C.softGray, marginBottom: "0.4rem" }}>
                   Kumulierter Fortschritt
                 </div>
