@@ -50,13 +50,17 @@ function BillAnalysis({ currentData, onApply }) {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const timerRef = useRef(null);
+  const stepTimeoutRef = useRef(null);
   const [data, setData] = useState({
     monatsverbrauch: 0, jahresverbrauch: 0,
     arbeitspreis: 0, netzentgelte: 0, umlagenSteuern: 0, gesamtpreis: 0,
     leistung: 0, grundpreis: 0,
   });
 
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
+  }, []);
 
   const startAnalysis = useCallback(() => {
     setPhase("analyzing");
@@ -79,7 +83,7 @@ function BillAnalysis({ currentData, onApply }) {
           leistung: Math.round(monthKWh / 730 * 1.15),
           grundpreis: 30,
         });
-        setTimeout(() => setPhase("results"), 350);
+        stepTimeoutRef.current = setTimeout(() => setPhase("results"), 350);
         return;
       }
       const step = BILL_STEPS[stepIdx];
@@ -96,7 +100,7 @@ function BillAnalysis({ currentData, onApply }) {
           current = step.target;
           setProgress(current);
           stepIdx++;
-          setTimeout(runStep, 180);
+          stepTimeoutRef.current = setTimeout(runStep, 180);
         }
       }, step.delay);
     }
@@ -195,7 +199,7 @@ function BillAnalysis({ currentData, onApply }) {
               </span>
               <input
                 type="text" inputMode="decimal"
-                value={f.dec ? data[f.key].toFixed(f.dec) : data[f.key]}
+                value={f.derived && f.dec ? data[f.key].toFixed(f.dec) : data[f.key]}
                 onChange={e => updateField(f.key, e.target.value)}
                 readOnly={f.derived}
                 style={{
