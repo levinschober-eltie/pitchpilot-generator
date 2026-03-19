@@ -113,6 +113,9 @@ export function createBlankProject() {
       tilgungsfrei: 2,
     },
 
+    // Market analysis results (filled when Marktanalyse step is visited)
+    market: {},
+
     // Generated content (filled by Claude API or manually)
     generated: null,
 

@@ -14,6 +14,7 @@ const STEPS = [
   { key: "company", label: "Unternehmen", icon: "building" },
   { key: "energy", label: "Energieprofil", icon: "bolt" },
   { key: "phases", label: "Phasen", icon: "target" },
+  { key: "market", label: "Marktanalyse", icon: "chart" },
   { key: "generate", label: "Generieren", icon: "sparkle" },
 ];
 
@@ -28,7 +29,6 @@ export default function Wizard() {
     return createBlankProject();
   });
   const [step, setStep] = useState(project.step || 0);
-  const [marketOpen, setMarketOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
 
   useEffect(() => {
@@ -74,15 +74,8 @@ export default function Wizard() {
             </div>
           ))}
         </div>
-        {/* Tool buttons */}
+        {/* PDF button */}
         <div style={{ display: "flex", gap: "0.4rem" }}>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setMarketOpen(true)}
-            title="Marktanalyse"
-          >
-            <Icon name="chart" size={12} /> Marktanalyse
-          </button>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => setPdfOpen(true)}
@@ -108,6 +101,15 @@ export default function Wizard() {
         />
       )}
       {step === 3 && (
+        <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Lade Marktanalyse...</div>}>
+          <MarketAnalysis
+            project={project}
+            inline
+            onResults={(results) => updateFull("market", results)}
+          />
+        </Suspense>
+      )}
+      {step === 4 && (
         <GenerateStep
           project={project}
           onGenerated={(content) => {
@@ -136,9 +138,8 @@ export default function Wizard() {
         )}
       </div>
 
-      {/* Modals */}
+      {/* PDF Modal */}
       <Suspense fallback={null}>
-        {marketOpen && <MarketAnalysis project={project} onClose={() => setMarketOpen(false)} />}
         {pdfOpen && <PdfExport project={project} onClose={() => setPdfOpen(false)} />}
       </Suspense>
     </div>

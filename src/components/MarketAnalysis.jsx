@@ -749,7 +749,7 @@ const S = {
 /* ─────────────────────────────────────────────
    Main Component
 ───────────────────────────────────────────── */
-export default function MarketAnalysis({ project, onClose }) {
+export default function MarketAnalysis({ project, onClose, inline, onResults }) {
   const e = project?.energy || {};
   const pc = project?.phaseConfig || {};
   const pvConf = pc.pv || {};
@@ -920,6 +920,28 @@ export default function MarketAnalysis({ project, onClose }) {
     });
   }, [pvHourly, loadHourly, priceHourly, bessResult, params.fixedPriceCt, params.co2Price]);
 
+  /* ── Push results to parent (unified calc) ── */
+  const onResultsRef = useRef(onResults);
+  onResultsRef.current = onResults;
+  useEffect(() => {
+    if (!onResultsRef.current) return;
+    onResultsRef.current({
+      pvYieldMWh,
+      selfConsumptionRate: marketResults.selfConsumptionRate,
+      autarkyRate: marketResults.autarkyRate,
+      selfConsumption: marketResults.selfConsumption,
+      surplus: marketResults.surplus,
+      deficit: marketResults.deficit,
+      dvRevenue: marketResults.dvRevenue,
+      eegRevenue: marketResults.eegRevenue,
+      dvBessRevenue: marketResults.dvBessRevenue,
+      procurementSavings: marketResults.procurementSavings,
+      co2Avoided: marketResults.co2Avoided,
+      bessRevenue: bessResult?.totalRevenue || 0,
+      bessCycles: bessResult?.totalCycles || 0,
+    });
+  }, [marketResults, pvYieldMWh, bessResult]);
+
   /* ── Chart data ── */
   const daily = useMemo(() => aggregateDailyProfile(pvHourly, loadHourly, priceHourly, season), [pvHourly, loadHourly, priceHourly, season]);
   const monthly = useMemo(() => aggregateMonthly(pvHourly, loadHourly, priceHourly), [pvHourly, loadHourly, priceHourly]);
@@ -946,29 +968,29 @@ export default function MarketAnalysis({ project, onClose }) {
   /* ─────────────────────────────────────────────
      Render
   ───────────────────────────────────────────── */
-  return (
-    <div style={S.overlay} onClick={(ev) => { if (ev.target === ev.currentTarget) onClose(); }}>
-      <div style={S.modal} role="dialog" aria-modal="true" aria-label="Marktanalyse">
-        {/* Header */}
-        <div style={S.header}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <Icon name="chart" size={22} color={C.navyDeep} />
-            <div>
-              <h2 style={{ fontFamily: "Georgia, serif", fontSize: "1.2rem", color: C.navyDeep, margin: 0 }}>
-                Marktanalyse
-              </h2>
-              <p style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.78rem", color: C.navyDeep, margin: 0, opacity: 0.7 }}>
-                Energiemarkt · Direktvermarktung · BESS-Optimierung
-              </p>
-            </div>
-          </div>
-          <button style={S.closeBtn} onClick={onClose} aria-label="Schließen">
-            <Icon name="arrowLeft" size={18} color={C.navyDeep} />
-          </button>
+  const headerEl = (
+    <div style={S.header}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <Icon name="chart" size={22} color={C.navyDeep} />
+        <div>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: "1.2rem", color: C.navyDeep, margin: 0 }}>
+            Marktanalyse
+          </h2>
+          <p style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.78rem", color: C.navyDeep, margin: 0, opacity: 0.7 }}>
+            Energiemarkt · Direktvermarktung · BESS-Optimierung
+          </p>
         </div>
+      </div>
+      {!inline && (
+        <button style={S.closeBtn} onClick={onClose} aria-label="Schließen">
+          <Icon name="arrowLeft" size={18} color={C.navyDeep} />
+        </button>
+      )}
+    </div>
+  );
 
-        {/* Body */}
-        <div style={S.body}>
+  const bodyContent = (
+    <div style={S.body}>
 
           {/* ── Datenquellen-Status ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
@@ -1330,10 +1352,27 @@ export default function MarketAnalysis({ project, onClose }) {
             </div>
           </div>
 
-        </div>
+    </div>
+  );
 
-        {/* CSS for spinner animation */}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  const spinnerCss = <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>;
+
+  if (inline) {
+    return (
+      <div className="fade-in" style={{ borderRadius: 12, overflow: "hidden", background: C.navyDeep, border: `1px solid ${C.navyLight}` }}>
+        {headerEl}
+        {bodyContent}
+        {spinnerCss}
+      </div>
+    );
+  }
+
+  return (
+    <div style={S.overlay} onClick={(ev) => { if (ev.target === ev.currentTarget) onClose(); }}>
+      <div style={S.modal} role="dialog" aria-modal="true" aria-label="Marktanalyse">
+        {headerEl}
+        {bodyContent}
+        {spinnerCss}
       </div>
     </div>
   );

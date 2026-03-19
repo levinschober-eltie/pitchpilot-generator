@@ -15,6 +15,7 @@ export function calculateAll(project) {
   const fin = project.finance || {};
   const phases = project.phases || [];
   const mob = pc.ladeinfra || {};
+  const market = project.market || {};
 
   const stromverbrauch = e.stromverbrauch || 10000;
   const gasverbrauch = e.gasverbrauch || 5000;
@@ -30,18 +31,27 @@ export function calculateAll(project) {
   const pvFreiflaeche = pvConf.pvFreiflaeche || 0;
   const pvBestand = e.existingPV || 0;
   const totalPV = pvDach + pvFassade + pvCarport + pvFreiflaeche + pvBestand;
-  const pvErzeugung = Math.round(totalPV * PV_YIELD); // MWh/a
+  // Use detailed market simulation when available, otherwise simple estimate
+  const pvErzeugung = market.pvYieldMWh > 0
+    ? Math.round(market.pvYieldMWh)
+    : Math.round(totalPV * PV_YIELD);
 
   /* ── Self-consumption ── */
-  const baseRatio = pvErzeugung > 0
-    ? Math.max(0, Math.min(0.55, (stromverbrauch / pvErzeugung) * 0.55))
-    : 0;
   const spConf = pc.speicher || {};
   const standortBESS = spConf.kapazitaet || 0;
-  const bessBoost = standortBESS > 0 && pvErzeugung > 0
-    ? Math.max(0, Math.min(0.25, (standortBESS / pvErzeugung) * 3))
-    : 0;
-  const eigenverbrauchsquote = Math.round(Math.max(0, Math.min(93, (baseRatio + bessBoost) * 100)));
+  // Use market simulation rate when available
+  let eigenverbrauchsquote;
+  if (market.selfConsumptionRate != null) {
+    eigenverbrauchsquote = Math.round(Math.max(0, Math.min(93, market.selfConsumptionRate * 100)));
+  } else {
+    const baseRatio = pvErzeugung > 0
+      ? Math.max(0, Math.min(0.55, (stromverbrauch / pvErzeugung) * 0.55))
+      : 0;
+    const bessBoost = standortBESS > 0 && pvErzeugung > 0
+      ? Math.max(0, Math.min(0.25, (standortBESS / pvErzeugung) * 3))
+      : 0;
+    eigenverbrauchsquote = Math.round(Math.max(0, Math.min(93, (baseRatio + bessBoost) * 100)));
+  }
   const eigenverbrauch = Math.round(pvErzeugung * eigenverbrauchsquote / 100);
   const einspeisung = Math.round(pvErzeugung - eigenverbrauch);
   const restbezug = Math.max(0, stromverbrauch - eigenverbrauch);
@@ -132,9 +142,12 @@ export function calculateAll(project) {
   const bessRendite = isFinite(bessRenditeRaw) ? Math.round(bessRenditeRaw * 10) / 10 : 0;
 
   /* ── Autarkie ── */
-  const autarkieRaw = stromverbrauch > 0
-    ? Math.min(95, Math.round(Math.max(0, Math.min(1, eigenverbrauch / stromverbrauch)) * 60 + (gasErsatzRate / 100) * 30 + 5))
-    : 0;
+  // Electricity autarky from market simulation or simple estimate
+  const elecAutarky = market.autarkyRate != null
+    ? market.autarkyRate * 100
+    : stromverbrauch > 0 ? Math.max(0, Math.min(100, (eigenverbrauch / stromverbrauch) * 100)) : 0;
+  // Blend: 60% electricity + 30% heat + 5% base (Eckart formula)
+  const autarkieRaw = Math.min(95, Math.round(elecAutarky * 0.6 + (gasErsatzRate / 100) * 30 + 5));
   const autarkie = isFinite(autarkieRaw) ? autarkieRaw : 0;
 
   /* ── Finanzierung ── */
@@ -160,6 +173,12 @@ export function calculateAll(project) {
   const dscrRaw = annuitaet > 0 ? gesamtertrag / annuitaet : 99;
   const dscr = isFinite(dscrRaw) ? Math.round(dscrRaw * 100) / 100 : 99;
 
+  // Market-specific KPIs (only when market analysis has run)
+  const dvRevenue = market.dvRevenue || 0;
+  const dvBessRevenue = market.dvBessRevenue || 0;
+  const procurementSavings = market.procurementSavings || 0;
+  const hasMarket = !!market.pvYieldMWh;
+
   return {
     totalPV, pvErzeugung, eigenverbrauchsquote, eigenverbrauch, einspeisung, restbezug,
     standortBESS, peakShavingSavings,
@@ -175,6 +194,7 @@ export function calculateAll(project) {
     amortisationStandort, amortisationGesamt, autarkie,
     ekBetrag, kreditBetrag, zinsTilgungsfrei, annuitaet,
     totalZinskosten, cfNachSchuldendienst, ekRendite, dscr, tilgungsJahre,
+    dvRevenue, dvBessRevenue, procurementSavings, hasMarket,
   };
 }
 
