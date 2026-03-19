@@ -75,12 +75,16 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
       <div className="grid-4" style={{ marginBottom: "2rem" }}>
         {[
           { label: "Gesamt-PV", value: `${fmtNum(calc.totalPV, 1)} MWp`, icon: "sun", color: "#4CAF7D" },
-          { label: "Jahreseinsparung", value: fmtEuro(calc.gesamtEinsparungJahr), icon: "money", color: "#D4A843" },
+          { label: "Gesamtertrag/a", value: fmtEuro(calc.gesamtertrag), icon: "money", color: "#D4A843" },
           { label: "CO₂-Reduktion", value: `${fmtNum(calc.co2Gesamt)} t/a`, icon: "leaf", color: "#4CAF7D" },
-          { label: "Amortisation", value: `${fmtNum(calc.amortisation, 1)} J.`, icon: "clock", color: "#D4A843" },
+          { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, icon: "clock", color: "#D4A843" },
           { label: "Investition", value: fmtEuro(calc.investGesamt), icon: "chart", color: "#B0B0A6" },
-          { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, icon: "shield", color: "#4CAF7D" },
-          { label: "Kreditrate", value: `${fmtEuro(calc.annuitaet)}/a`, icon: "money", color: "#B0B0A6" },
+          { label: "Autarkie", value: `${calc.autarkie}%`, icon: "shield", color: "#4CAF7D" },
+          { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, icon: "money", color: "#E8C97A" },
+          { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, icon: "shield", color: calc.dscr >= 1.2 ? "#4CAF7D" : "#E74C3C" },
+          { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, icon: "money", color: "#B0B0A6" },
+          { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, icon: "chart", color: calc.cfNachSchuldendienst > 0 ? "#4CAF7D" : "#E74C3C" },
+          { label: "Eigenverbrauch", value: `${calc.eigenverbrauchsquote}%`, icon: "bolt", color: "#4CAF7D" },
           { label: "Phasen", value: `${enabledPhases.length}`, icon: "target", color: "#D4A843" },
         ].map((kpi) => (
           <div key={kpi.label} className="card" style={{ textAlign: "center", padding: "1rem" }}>

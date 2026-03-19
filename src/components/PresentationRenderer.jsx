@@ -1,9 +1,12 @@
-import { useState, useMemo, useRef, useCallback, startTransition } from "react";
+import { useState, useMemo, useRef, useCallback, startTransition, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProject } from "../store";
-import { calculateAll, fmtEuro, fmtNum } from "../calcEngine";
+import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards } from "../calcEngine";
 import { C } from "../colors";
 import Icon from "./Icons";
+
+const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
+const PdfExport = lazy(() => import("./PdfExport"));
 
 /* ── Style Constants (extracted for GC) ── */
 const S = {
@@ -176,10 +179,30 @@ function FinalSummary({ summary, calc, color }) {
         <div className="card" style={{ textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
           <div style={S.labelSmall}>Amortisation</div>
           <div style={{ ...S.valueText, color: C.gold, fontSize: "1.2rem", marginTop: "0.25rem" }}>
-            {summary.amortisation || `${fmtNum(calc.amortisation, 1)} Jahre`}
+            {summary.amortisation || `${fmtNum(calc.amortisationGesamt, 1)} Jahre`}
           </div>
         </div>
       </div>
+
+      {/* Detailed Breakdown */}
+      {calc && (
+        <div style={{ marginTop: "1.5rem" }}>
+          <div style={S.sectionHeading}>Investitions-Übersicht</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            {[
+              { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}% p.a.`, color: C.gold },
+              { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, color: calc.dscr >= 1.2 ? C.greenLight : C.red },
+              { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, color: C.softGray },
+              { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, color: calc.cfNachSchuldendienst > 0 ? C.greenLight : C.red },
+            ].map((item, i) => (
+              <div key={i} style={{ ...S.cardBase, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={S.labelSmall}>{item.label}</span>
+                <span style={{ ...S.valueText, color: item.color, fontSize: "0.9rem" }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -191,6 +214,8 @@ export default function PresentationRenderer() {
   const project = useMemo(() => getProject(id), [id]);
   const [active, setActive] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
+  const [marketOpen, setMarketOpen] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
   const contentRef = useRef(null);
 
   const calc = useMemo(() => project ? calculateAll(project) : null, [project]);
@@ -307,13 +332,17 @@ export default function PresentationRenderer() {
             {company.name}
           </span>
         </div>
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={() => navigate(`/edit/${id}`)}
-          style={{ fontSize: "0.65rem" }}
-        >
-          <Icon name="settings" size={12} /> Bearbeiten
-        </button>
+        <div style={{ display: "flex", gap: "0.3rem" }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMarketOpen(true)} style={{ fontSize: "0.65rem" }}>
+            <Icon name="chart" size={12} /> Marktanalyse
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => setPdfOpen(true)} style={{ fontSize: "0.65rem" }}>
+            <Icon name="download" size={12} /> PDF
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/edit/${id}`)} style={{ fontSize: "0.65rem" }}>
+            <Icon name="settings" size={12} /> Bearbeiten
+          </button>
+        </div>
       </div>
 
       {/* Content area */}
@@ -431,6 +460,12 @@ export default function PresentationRenderer() {
           .pitch-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
+
+      {/* Modals */}
+      <Suspense fallback={null}>
+        {marketOpen && <MarketAnalysis project={project} onClose={() => setMarketOpen(false)} />}
+        {pdfOpen && <PdfExport project={project} onClose={() => setPdfOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

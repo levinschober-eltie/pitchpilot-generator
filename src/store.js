@@ -98,10 +98,10 @@ export function createBlankProject() {
       { key: "bess", enabled: false, label: "Graustrom-BESS" },
     ],
     phaseConfig: {
-      pv: { pvDach: 2.0, pvFassade: 0, pvCarport: 0.5 },
-      speicher: { kapazitaet: 4, peakShaving: true },
+      pv: { pvDach: 2.0, pvFassade: 0, pvCarport: 0.5, pvFreiflaeche: 0 },
+      speicher: { kapazitaet: 4 },
       waerme: { wpLeistung: 2.0, pufferspeicher: 100 },
-      ladeinfra: { anzahlPKW: 20, anzahlLKW: 0 },
+      ladeinfra: { anzahlPKW: 20, anzahlLKW: 0, kmPKW: 15000, kmLKW: 60000, dieselpreis: 1.55 },
       bess: { kapazitaet: 50 },
     },
 

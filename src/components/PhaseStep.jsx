@@ -1,22 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { calculateAll, fmtEuro, fmtNum } from "../calcEngine";
 import Icon from "./Icons";
 
 const PHASE_ICONS = {
-  analyse: "factory",
-  pv: "sun",
-  speicher: "battery",
-  waerme: "fire",
-  ladeinfra: "car",
-  bess: "grid",
+  analyse: "factory", pv: "sun", speicher: "battery",
+  waerme: "fire", ladeinfra: "car", bess: "grid",
 };
 
 const PHASE_DESCRIPTIONS = {
   analyse: "Bestandsaufnahme, Lastgang-Analyse, Potenzialermittlung",
-  pv: "Dach-, Fassaden- und Carport-PV-Anlagen",
-  speicher: "Batteriespeicher und Energiemanagementsystem",
-  waerme: "Wärmepumpen, Prozesswärme-Dekarbonisierung",
-  ladeinfra: "E-Fahrzeug Ladeinfrastruktur für PKW und LKW",
-  bess: "Großspeicher für Netzdienstleistungen und Arbitrage",
+  pv: "Dach-, Fassaden-, Carport- und Freiflächen-PV",
+  speicher: "Batteriespeicher, Peak-Shaving, Energiemanagement",
+  waerme: "Wärmepumpen-Kaskade, Pufferspeicher, Prozesswärme",
+  ladeinfra: "AC/DC-Ladepunkte, Lastmanagement, Flottenumstellung",
+  bess: "Großspeicher für Regelenergie, Arbitrage, Netzdienstleistungen",
 };
 
 const PHASE_CONFIGS = {
@@ -24,6 +21,7 @@ const PHASE_CONFIGS = {
     { key: "pvDach", label: "PV Dach", unit: "MWp", min: 0, max: 15, step: 0.1 },
     { key: "pvFassade", label: "PV Fassade", unit: "MWp", min: 0, max: 5, step: 0.1 },
     { key: "pvCarport", label: "PV Carport", unit: "MWp", min: 0, max: 5, step: 0.1 },
+    { key: "pvFreiflaeche", label: "PV Freifläche", unit: "MWp", min: 0, max: 10, step: 0.1 },
   ],
   speicher: [
     { key: "kapazitaet", label: "Speicherkapazität", unit: "MWh", min: 0.5, max: 30, step: 0.5 },
@@ -33,8 +31,11 @@ const PHASE_CONFIGS = {
     { key: "pufferspeicher", label: "Pufferspeicher", unit: "m³", min: 10, max: 1000, step: 10 },
   ],
   ladeinfra: [
-    { key: "anzahlPKW", label: "PKW-Ladepunkte", unit: "Stk.", min: 0, max: 200, step: 1 },
-    { key: "anzahlLKW", label: "LKW-Ladepunkte", unit: "Stk.", min: 0, max: 30, step: 1 },
+    { key: "anzahlPKW", label: "PKW-Ladepunkte (AC)", unit: "Stk.", min: 0, max: 200, step: 5 },
+    { key: "anzahlLKW", label: "LKW-Ladepunkte (DC)", unit: "Stk.", min: 0, max: 30, step: 1 },
+    { key: "kmPKW", label: "Ø Fahrleistung PKW", unit: "km/a", min: 5000, max: 40000, step: 1000 },
+    { key: "kmLKW", label: "Ø Fahrleistung LKW", unit: "km/a", min: 10000, max: 120000, step: 5000 },
+    { key: "dieselpreis", label: "Dieselpreis", unit: "€/l", min: 1.0, max: 2.5, step: 0.05 },
   ],
   bess: [
     { key: "kapazitaet", label: "BESS Kapazität", unit: "MWh", min: 10, max: 500, step: 10 },
@@ -43,7 +44,7 @@ const PHASE_CONFIGS = {
 
 const FINANCE_SLIDERS = [
   { key: "ekAnteil", label: "Eigenkapitalanteil", unit: "%", min: 10, max: 100, step: 5 },
-  { key: "kreditZins", label: "Kreditzins", unit: "%", min: 2, max: 8, step: 0.25 },
+  { key: "kreditZins", label: "Kreditzins", unit: "% p.a.", min: 2, max: 8, step: 0.1 },
   { key: "kreditLaufzeit", label: "Kreditlaufzeit", unit: "Jahre", min: 5, max: 25, step: 1 },
   { key: "tilgungsfrei", label: "Tilgungsfreie Jahre", unit: "Jahre", min: 0, max: 5, step: 1 },
 ];
@@ -62,8 +63,8 @@ function SliderGroup({ sliders, data, onChange }) {
       />
       <span className="slider-value">
         {Number(data[s.key] ?? s.min).toLocaleString("de-DE", {
-          minimumFractionDigits: s.step < 1 ? 1 : 0,
-          maximumFractionDigits: s.step < 1 ? 1 : 0,
+          minimumFractionDigits: s.step < 1 ? (s.step < 0.1 ? 2 : 1) : 0,
+          maximumFractionDigits: s.step < 1 ? (s.step < 0.1 ? 2 : 1) : 0,
         })}{" "}
         {s.unit}
       </span>
@@ -71,8 +72,13 @@ function SliderGroup({ sliders, data, onChange }) {
   ));
 }
 
-export default function PhaseStep({ phases, phaseConfig, finance, onPhasesChange, onConfigChange, onFinanceChange }) {
+export default function PhaseStep({ project, phases, phaseConfig, finance, onPhasesChange, onConfigChange, onFinanceChange }) {
   const [expandedPhase, setExpandedPhase] = useState(null);
+
+  const calc = useMemo(() => {
+    if (!project) return null;
+    return calculateAll(project);
+  }, [project]);
 
   const togglePhase = (idx) => {
     const updated = [...phases];
@@ -84,6 +90,11 @@ export default function PhaseStep({ phases, phaseConfig, finance, onPhasesChange
     setExpandedPhase(expandedPhase === key ? null : key);
   };
 
+  const investMap = calc ? {
+    analyse: calc.investPhase1, pv: calc.investPhase2, speicher: calc.investPhase3,
+    waerme: calc.investPhase4, ladeinfra: calc.investPhase5, bess: calc.investPhase6,
+  } : {};
+
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
@@ -92,6 +103,30 @@ export default function PhaseStep({ phases, phaseConfig, finance, onPhasesChange
       <p style={{ color: "var(--soft-gray)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Wähle die Transformationsphasen und konfiguriere die Parameter.
       </p>
+
+      {/* Live KPI bar */}
+      {calc && (
+        <div className="card" style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", padding: "0.75rem 1rem" }}>
+          {[
+            { label: "Investition", value: fmtEuro(calc.investGesamt), color: "#F5F5F0" },
+            { label: "Einsparung/a", value: fmtEuro(calc.gesamtertrag), color: "#4CAF7D" },
+            { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: "#D4A843" },
+            { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: "#4CAF7D" },
+            { label: "Autarkie", value: `${calc.autarkie}%`, color: "#D4A843" },
+            { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, color: "#E8C97A" },
+            { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, color: "#B0B0A6" },
+          ].map((kpi) => (
+            <div key={kpi.label} style={{ textAlign: "center", minWidth: 80 }}>
+              <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "1rem", fontWeight: 700, color: kpi.color }}>
+                {kpi.value}
+              </div>
+              <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.6rem", color: "var(--soft-gray)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                {kpi.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Phase toggles */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "2rem" }}>
@@ -111,13 +146,20 @@ export default function PhaseStep({ phases, phaseConfig, finance, onPhasesChange
                   {PHASE_DESCRIPTIONS[p.key] || ""}
                 </div>
               </div>
+              {/* Live investment badge */}
+              {p.enabled && calc && investMap[p.key] > 0 && (
+                <span style={{
+                  fontFamily: "Calibri, sans-serif", fontSize: "0.7rem", fontWeight: 700,
+                  color: "#D4A843", background: "rgba(212,168,67,0.1)",
+                  padding: "0.2rem 0.5rem", borderRadius: "1rem", whiteSpace: "nowrap",
+                }}>
+                  {fmtEuro(investMap[p.key])}
+                </span>
+              )}
               {p.enabled && PHASE_CONFIGS[p.key] && (
                 <button
                   className="btn btn-secondary btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleExpand(p.key);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); toggleExpand(p.key); }}
                 >
                   <Icon name={expandedPhase === p.key ? "arrowLeft" : "settings"} size={12} />
                   {expandedPhase === p.key ? "Schließen" : "Konfigurieren"}
@@ -125,7 +167,6 @@ export default function PhaseStep({ phases, phaseConfig, finance, onPhasesChange
               )}
             </div>
 
-            {/* Phase config sliders */}
             {expandedPhase === p.key && PHASE_CONFIGS[p.key] && (
               <div className="card" style={{ marginTop: "0.5rem", marginLeft: "3rem" }}>
                 <SliderGroup
@@ -149,6 +190,23 @@ export default function PhaseStep({ phases, phaseConfig, finance, onPhasesChange
           data={finance || {}}
           onChange={(d) => onFinanceChange(d)}
         />
+        {/* Finance KPIs */}
+        {calc && (
+          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+            {[
+              { label: "Eigenkapital", value: fmtEuro(calc.ekBetrag) },
+              { label: "Kredit", value: fmtEuro(calc.kreditBetrag) },
+              { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a` },
+              { label: "Gesamtzins", value: fmtEuro(calc.totalZinskosten) },
+              { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a` },
+            ].map((item) => (
+              <div key={item.label} style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.75rem" }}>
+                <span style={{ color: "var(--soft-gray)" }}>{item.label}: </span>
+                <span style={{ fontWeight: 700, color: "#D4A843" }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

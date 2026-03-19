@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProject, saveProject, createBlankProject } from "../store";
 import CompanyStep from "./CompanyStep";
@@ -6,6 +6,9 @@ import EnergyStep from "./EnergyStep";
 import PhaseStep from "./PhaseStep";
 import GenerateStep from "./GenerateStep";
 import Icon from "./Icons";
+
+const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
+const PdfExport = lazy(() => import("./PdfExport"));
 
 const STEPS = [
   { key: "company", label: "Unternehmen", icon: "building" },
@@ -25,8 +28,9 @@ export default function Wizard() {
     return createBlankProject();
   });
   const [step, setStep] = useState(project.step || 0);
+  const [marketOpen, setMarketOpen] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
 
-  // Auto-save on project change
   useEffect(() => {
     const saved = saveProject({ ...project, step });
     if (!id && saved.id) {
@@ -49,30 +53,44 @@ export default function Wizard() {
     return true;
   };
 
-  const goNext = () => {
-    if (step < STEPS.length - 1 && canNext()) setStep(step + 1);
-  };
-
-  const goBack = () => {
-    if (step > 0) setStep(step - 1);
-  };
+  const goNext = () => { if (step < STEPS.length - 1 && canNext()) setStep(step + 1); };
+  const goBack = () => { if (step > 0) setStep(step - 1); };
 
   return (
     <div className="fade-in">
       {/* Step indicators */}
-      <div className="wizard-steps">
-        {STEPS.map((s, i) => (
-          <div
-            key={s.key}
-            className={`wizard-step ${i === step ? "active" : ""} ${i < step ? "done" : ""}`}
-            onClick={() => i <= step && setStep(i)}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+        <div className="wizard-steps" style={{ marginBottom: 0 }}>
+          {STEPS.map((s, i) => (
+            <div
+              key={s.key}
+              className={`wizard-step ${i === step ? "active" : ""} ${i < step ? "done" : ""}`}
+              onClick={() => i <= step && setStep(i)}
+            >
+              <span className="step-num">
+                {i < step ? <Icon name="check" size={12} /> : i + 1}
+              </span>
+              <span>{s.label}</span>
+            </div>
+          ))}
+        </div>
+        {/* Tool buttons */}
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setMarketOpen(true)}
+            title="Marktanalyse"
           >
-            <span className="step-num">
-              {i < step ? <Icon name="check" size={12} /> : i + 1}
-            </span>
-            <span>{s.label}</span>
-          </div>
-        ))}
+            <Icon name="chart" size={12} /> Marktanalyse
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setPdfOpen(true)}
+            title="PDF Export"
+          >
+            <Icon name="download" size={12} /> PDF
+          </button>
+        </div>
       </div>
 
       {/* Step content */}
@@ -80,6 +98,7 @@ export default function Wizard() {
       {step === 1 && <EnergyStep data={project.energy} onChange={(d) => update("energy", d)} />}
       {step === 2 && (
         <PhaseStep
+          project={project}
           phases={project.phases}
           phaseConfig={project.phaseConfig}
           finance={project.finance}
@@ -116,6 +135,12 @@ export default function Wizard() {
           )
         )}
       </div>
+
+      {/* Modals */}
+      <Suspense fallback={null}>
+        {marketOpen && <MarketAnalysis project={project} onClose={() => setMarketOpen(false)} />}
+        {pdfOpen && <PdfExport project={project} onClose={() => setPdfOpen(false)} />}
+      </Suspense>
     </div>
   );
 }
