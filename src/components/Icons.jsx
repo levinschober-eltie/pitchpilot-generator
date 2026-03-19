@@ -30,6 +30,17 @@ const paths = {
   close: "M18 6L6 18M6 6l12 12",
   bank: "M3 21h18M4 10h16M12 3l9 7H3l9-7zM6 10v8m4-8v8m4-8v8m4-8v8",
   reset: "M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15",
+  search: "M21 21l-4.35-4.35M11 4a7 7 0 100 14 7 7 0 000-14z",
+  plug: "M12 22v-4M5 12h14v4H5v-4zM7 12V5M17 12V5",
+  satellite: "M4 15l-3 3M7 12l-3 3M4 15c0 0 1-6 7-6s6 7 6 7M1 18c0 0 1.5-10 11-10s10 10 10 10",
+  microscope: "M6 18h12M14 4l-4 8M10 12a5 5 0 005 5M3 21h18",
+  document: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M8 13h8M8 17h5",
+  gear: "M12 15a3 3 0 100-6 3 3 0 000 6zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.41 1.41M1 12h2m18 0h2M4.22 19.78l1.42-1.42m12.73-12.73l1.41-1.41",
+  chartUp: "M3 3v18h18M7 14l4-4 3 3 6-6M17 7h3v3",
+  chartDown: "M3 3v18h18M7 10l4 4 3-3 6 6M17 17h3v-3",
+  trophy: "M12 15v4M8 19h8M6 3h12v6a6 6 0 01-12 0V3zM6 5H4a2 2 0 00-2 2v1a3 3 0 003 3h1M18 5h2a2 2 0 012 2v1a3 3 0 01-3 3h-1",
+  parking: "M12 2a10 10 0 100 20 10 10 0 000-20zM10 16V8h3a3 3 0 010 6h-3",
+  thermometer: "M15 13V4a3 3 0 00-6 0v9a5 5 0 106 0zM12 17a2 2 0 100-4 2 2 0 000 4z",
 };
 
 export default function Icon({ name, size = 18, color = "currentColor", ...rest }) {

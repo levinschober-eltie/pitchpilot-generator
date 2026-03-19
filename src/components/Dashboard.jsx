@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { listProjects, deleteProject, duplicateProject } from "../store";
-import { useState } from "react";
+import { listProjects, deleteProject, duplicateProject, seedDemoProjects } from "../store";
+import { useState, useEffect } from "react";
 import Icon from "./Icons";
 
 export default function Dashboard() {
@@ -8,6 +8,13 @@ export default function Dashboard() {
   const [projects, setProjects] = useState(() => listProjects());
 
   const refresh = () => setProjects(listProjects());
+
+  useEffect(() => {
+    seedDemoProjects();
+    // Re-read after async seed completes
+    const t = setTimeout(refresh, 100);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
@@ -62,6 +69,7 @@ export default function Dashboard() {
                   {p.company?.city && <span>{p.company.city} · </span>}
                   {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
                   {p.generated && <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>● Generiert</span>}
+                  {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.25rem" }}>

@@ -124,6 +124,18 @@ export function createBlankProject() {
   };
 }
 
+/** Seed demo projects if not already present */
+export function seedDemoProjects() {
+  // Lazy import to avoid circular deps
+  import("./demoProjects.js").then(({ DEMO_PROJECTS }) => {
+    for (const demo of DEMO_PROJECTS) {
+      if (!getProject(demo.id)) {
+        localStorage.setItem(PREFIX + demo.id, JSON.stringify(demo));
+      }
+    }
+  });
+}
+
 /** API key management — sessionStorage only */
 export function getApiKey() {
   return sessionStorage.getItem("pitchpilot_anthropic_key") || "";
