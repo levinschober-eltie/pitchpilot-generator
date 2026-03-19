@@ -104,30 +104,6 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
         Wähle die Transformationsphasen und konfiguriere die Parameter.
       </p>
 
-      {/* Live KPI bar */}
-      {calc && (
-        <div className="card" style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", padding: "0.75rem 1rem" }}>
-          {[
-            { label: "Investition", value: fmtEuro(calc.investGesamt), color: "#222222" },
-            { label: "Einsparung/a", value: fmtEuro(calc.gesamtertrag), color: "#2D8C4E" },
-            { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: "#FFCE00" },
-            { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: "#2D8C4E" },
-            { label: "Autarkie", value: `${calc.autarkie}%`, color: "#FFCE00" },
-            { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, color: "#E6B800" },
-            { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, color: "#666666" },
-          ].map((kpi) => (
-            <div key={kpi.label} style={{ textAlign: "center", minWidth: 80 }}>
-              <div style={{ fontSize: "1rem", fontWeight: 700, color: kpi.color }}>
-                {kpi.value}
-              </div>
-              <div style={{ fontSize: "0.6rem", color: "var(--gray-text)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                {kpi.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Phase toggles */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "2rem" }}>
         {phases.map((p, i) => (
