@@ -27,7 +27,7 @@ export default function Dashboard() {
     return (
       <div className="empty-state fade-in">
         <div style={{ fontSize: "3rem", marginBottom: "1rem", opacity: 0.3 }}>
-          <Icon name="sparkle" size={64} color="#D4A843" />
+          <Icon name="sparkle" size={64} color="#FFCE00" />
         </div>
         <h2>Noch keine Projekte</h2>
         <p style={{ marginBottom: "1.5rem" }}>Erstelle deinen ersten interaktiven Energie-Pitch.</p>

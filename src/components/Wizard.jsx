@@ -119,7 +119,7 @@ export default function Wizard() {
       )}
 
       {/* Navigation */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
         <button className="btn btn-secondary" onClick={goBack} disabled={step === 0}>
           <Icon name="arrowLeft" size={14} /> Zurück
         </button>

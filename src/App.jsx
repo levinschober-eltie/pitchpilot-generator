@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, useLocation, Link } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Dashboard from "./components/Dashboard";
 
@@ -9,7 +9,7 @@ const Settings = lazy(() => import("./components/Settings"));
 function Loading() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-      <div className="spinner" style={{ width: 40, height: 40, border: "3px solid rgba(212,168,67,0.2)", borderTopColor: "#D4A843", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <div className="spinner" style={{ width: 40, height: 40, border: "3px solid #D0D0CC", borderTopColor: "#FFCE00", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
     </div>
   );
 }
@@ -32,7 +32,9 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1 onClick={() => navigate("/")}>PitchPilot</h1>
+        <h1 onClick={() => navigate("/")}>
+          PITCH<span>PILOT</span>
+        </h1>
         <nav>
           <button className="btn btn-secondary btn-sm" onClick={() => navigate("/")}>Projekte</button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate("/new")}>+ Neuer Pitch</button>

@@ -1,4 +1,26 @@
-/** Shared color system — WCAG AA compliant on dark backgrounds */
+/** Shared color system — Elite PV brand + Pitch presentation */
+
+/* ── Elite PV Brand (configurator/wizard) ── */
+export const B = {
+  black: "#222222",
+  yellow: "#FFCE00",
+  yellowLight: "#FFD633",
+  yellowDim: "#E6B800",
+  white: "#FFFFFF",
+  offWhite: "#F8F8F6",
+  grayLight: "#F0F0EE",
+  grayMid: "#D0D0CC",
+  grayText: "#666666",
+  grayDark: "#444444",
+  border: "rgba(0,0,0,0.08)",
+  borderDark: "rgba(0,0,0,0.15)",
+  cyan: "#29ABE2",
+  green: "#2D8C4E",
+  greenLight: "#4CAF7D",
+  red: "#E74C3C",
+};
+
+/* ── Pitch Presentation (dark premium theme) ── */
 export const C = {
   navy: "#1B2A4A",
   navyDeep: "#0F1A2E",
@@ -17,19 +39,16 @@ export const C = {
   darkText: "#2B2B2B",
 
   red: "#E74C3C",
-  redDim: "#C0392B",
-  blue: "#3498DB",
 };
 
-/** Default brand palette — can be overridden per project */
+/** Default brand palette — overridable per project */
 export const defaultBrand = {
-  primary: C.gold,
-  primaryLight: C.goldLight,
-  secondary: C.green,
-  secondaryLight: C.greenLight,
-  accent: C.navy,
-  bg: C.navyDeep,
-  bgCard: C.navy,
-  text: C.warmWhite,
-  textMuted: C.softGray,
+  primary: B.yellow,
+  primaryLight: B.yellowLight,
+  secondary: B.black,
+  accent: B.cyan,
+  bg: B.white,
+  bgCard: B.offWhite,
+  text: B.black,
+  textMuted: B.grayText,
 };

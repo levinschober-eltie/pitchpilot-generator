@@ -28,16 +28,16 @@ export default function Settings() {
   return (
     <div className="fade-in" style={{ maxWidth: 600 }}>
       <h2 style={{ fontSize: "1.3rem", marginBottom: "1.5rem" }}>
-        <Icon name="settings" size={22} color="#D4A843" /> Einstellungen
+        <Icon name="settings" size={22} color="#FFCE00" /> Einstellungen
       </h2>
 
       {/* Claude API Key */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Icon name="sparkle" size={18} color="#D4A843" /> Claude API
+          <Icon name="sparkle" size={18} color="#FFCE00" /> Claude API
         </h3>
 
-        <div style={{ fontSize: "0.85rem", color: "var(--soft-gray)", marginBottom: "1rem", fontFamily: "Calibri, sans-serif", lineHeight: 1.5 }}>
+        <div style={{ fontSize: "0.85rem", color: "var(--gray-text)", marginBottom: "1rem", lineHeight: 1.5 }}>
           Für die AI-gestützte Pitch-Generierung wird ein Anthropic API-Key benötigt.
           Der Key wird nur in deinem Browser (SessionStorage) gespeichert und beim Schließen des Tabs gelöscht.
         </div>
@@ -45,8 +45,8 @@ export default function Settings() {
         {hasKey ? (
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <Icon name="check" size={16} color="#4CAF7D" />
-              <span style={{ fontFamily: "Calibri, sans-serif", color: "var(--green-light)", fontWeight: 700, fontSize: "0.85rem" }}>
+              <Icon name="check" size={16} color="#2D8C4E" />
+              <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "0.85rem" }}>
                 API-Key ist gesetzt
               </span>
             </div>
@@ -70,7 +70,7 @@ export default function Settings() {
               <Icon name="check" size={14} /> Speichern
             </button>
             {saved && (
-              <span style={{ marginLeft: "0.75rem", color: "var(--green-light)", fontFamily: "Calibri, sans-serif", fontSize: "0.85rem" }}>
+              <span style={{ marginLeft: "0.75rem", color: "var(--green)", fontSize: "0.85rem" }}>
                 Gespeichert!
               </span>
             )}
@@ -81,19 +81,19 @@ export default function Settings() {
       {/* SolarStudio Integration (placeholder) */}
       <div className="card" style={{ opacity: 0.6 }}>
         <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Icon name="sun" size={18} color="#B0B0A6" /> SolarStudio-Anbindung
+          <Icon name="sun" size={18} color="#666666" /> SolarStudio-Anbindung
         </h3>
-        <div style={{ fontSize: "0.85rem", color: "var(--soft-gray)", fontFamily: "Calibri, sans-serif", lineHeight: 1.5 }}>
+        <div style={{ fontSize: "0.85rem", color: "var(--gray-text)", lineHeight: 1.5 }}>
           Automatischer Import von 3D-Planungsdaten aus SolarStudio.
           Dachflächen, Ausrichtungen und Ertrags-Simulationen werden direkt übernommen.
         </div>
-        <div style={{ marginTop: "0.75rem", padding: "0.5rem 0.75rem", background: "rgba(255,255,255,0.04)", borderRadius: "8px", fontFamily: "Calibri, sans-serif", fontSize: "0.75rem", color: "var(--soft-gray)" }}>
+        <div style={{ marginTop: "0.75rem", padding: "0.5rem 0.75rem", background: "var(--gray-light)", borderRadius: "4px", fontSize: "0.75rem", color: "var(--gray-text)" }}>
           Coming soon — wird in einem separaten Projekt entwickelt.
         </div>
       </div>
 
       {/* Info */}
-      <div style={{ marginTop: "2rem", fontSize: "0.75rem", color: "var(--soft-gray)", fontFamily: "Calibri, sans-serif" }}>
+      <div style={{ marginTop: "2rem", fontSize: "0.75rem", color: "var(--gray-text)" }}>
         PitchPilot Generator v1.0 — Elite PV GmbH
       </div>
     </div>

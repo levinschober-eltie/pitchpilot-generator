@@ -65,34 +65,34 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="sparkle" size={22} color="#D4A843" /> Pitch generieren
+        <Icon name="sparkle" size={22} color="#FFCE00" /> Pitch generieren
       </h2>
-      <p style={{ color: "var(--soft-gray)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
+      <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Vorschau der berechneten Werte und Generierung der Präsentation.
       </p>
 
       {/* KPI Preview */}
       <div className="grid-4" style={{ marginBottom: "2rem" }}>
         {[
-          { label: "Gesamt-PV", value: `${fmtNum(calc.totalPV, 1)} MWp`, icon: "sun", color: "#4CAF7D" },
-          { label: "Gesamtertrag/a", value: fmtEuro(calc.gesamtertrag), icon: "money", color: "#D4A843" },
-          { label: "CO₂-Reduktion", value: `${fmtNum(calc.co2Gesamt)} t/a`, icon: "leaf", color: "#4CAF7D" },
-          { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, icon: "clock", color: "#D4A843" },
-          { label: "Investition", value: fmtEuro(calc.investGesamt), icon: "chart", color: "#B0B0A6" },
-          { label: "Autarkie", value: `${calc.autarkie}%`, icon: "shield", color: "#4CAF7D" },
-          { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, icon: "money", color: "#E8C97A" },
-          { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, icon: "shield", color: calc.dscr >= 1.2 ? "#4CAF7D" : "#E74C3C" },
-          { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, icon: "money", color: "#B0B0A6" },
-          { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, icon: "chart", color: calc.cfNachSchuldendienst > 0 ? "#4CAF7D" : "#E74C3C" },
-          { label: "Eigenverbrauch", value: `${calc.eigenverbrauchsquote}%`, icon: "bolt", color: "#4CAF7D" },
-          { label: "Phasen", value: `${enabledPhases.length}`, icon: "target", color: "#D4A843" },
+          { label: "Gesamt-PV", value: `${fmtNum(calc.totalPV, 1)} MWp`, icon: "sun", color: "#2D8C4E" },
+          { label: "Gesamtertrag/a", value: fmtEuro(calc.gesamtertrag), icon: "money", color: "#FFCE00" },
+          { label: "CO₂-Reduktion", value: `${fmtNum(calc.co2Gesamt)} t/a`, icon: "leaf", color: "#2D8C4E" },
+          { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, icon: "clock", color: "#E6B800" },
+          { label: "Investition", value: fmtEuro(calc.investGesamt), icon: "chart", color: "#666666" },
+          { label: "Autarkie", value: `${calc.autarkie}%`, icon: "shield", color: "#2D8C4E" },
+          { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, icon: "money", color: "#E6B800" },
+          { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, icon: "shield", color: calc.dscr >= 1.2 ? "#2D8C4E" : "#E74C3C" },
+          { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, icon: "money", color: "#666666" },
+          { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, icon: "chart", color: calc.cfNachSchuldendienst > 0 ? "#2D8C4E" : "#E74C3C" },
+          { label: "Eigenverbrauch", value: `${calc.eigenverbrauchsquote}%`, icon: "bolt", color: "#2D8C4E" },
+          { label: "Phasen", value: `${enabledPhases.length}`, icon: "target", color: "#FFCE00" },
         ].map((kpi) => (
           <div key={kpi.label} className="card" style={{ textAlign: "center", padding: "1rem" }}>
             <Icon name={kpi.icon} size={20} color={kpi.color} />
-            <div style={{ fontSize: "1.1rem", fontWeight: 700, fontFamily: "Calibri, sans-serif", marginTop: "0.3rem", color: kpi.color }}>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, marginTop: "0.3rem", color: kpi.color }}>
               {kpi.value}
             </div>
-            <div style={{ fontSize: "0.65rem", fontFamily: "Calibri, sans-serif", color: "var(--soft-gray)", letterSpacing: "0.5px", textTransform: "uppercase", marginTop: "0.15rem" }}>
+            <div style={{ fontSize: "0.65rem", color: "var(--gray-text)", letterSpacing: "0.5px", textTransform: "uppercase", marginTop: "0.15rem" }}>
               {kpi.label}
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
 
       {/* Generation mode */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <div style={{ fontFamily: "Calibri, sans-serif", fontWeight: 700, fontSize: "0.8rem", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.75rem", color: "var(--soft-gray)" }}>
+        <div style={{ fontWeight: 700, fontSize: "0.8rem", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.75rem", color: "var(--gray-text)" }}>
           Generierungsmethode
         </div>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -122,7 +122,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
           ))}
         </div>
         {!apiReady && (
-          <p style={{ fontSize: "0.75rem", color: "var(--gold)", marginTop: "0.75rem", fontFamily: "Calibri, sans-serif" }}>
+          <p style={{ fontSize: "0.75rem", color: "var(--yellow)", marginTop: "0.75rem" }}>
             Für AI-Generierung: API-Key unter Einstellungen hinterlegen.
           </p>
         )}
@@ -132,7 +132,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
       {generating ? (
         <div className="gen-progress">
           <div className="spinner" />
-          <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+          <div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
             Claude generiert den Pitch...
           </div>
           <button className="btn btn-danger btn-sm" onClick={handleCancel}>Abbrechen</button>
@@ -146,7 +146,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
         <div style={{ textAlign: "center" }}>
           {error && (
             <div className="card" style={{ background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.3)", marginBottom: "1rem", textAlign: "left" }}>
-              <div style={{ color: "var(--red)", fontFamily: "Calibri, sans-serif", fontSize: "0.85rem" }}>{error}</div>
+              <div style={{ color: "var(--red)", fontSize: "0.85rem" }}>{error}</div>
             </div>
           )}
           <button className="btn btn-primary btn-lg" onClick={handleGenerate}>
@@ -158,12 +158,12 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
 
       {/* Success state */}
       {project.generated && !generating && (
-        <div className="card" style={{ marginTop: "1.5rem", textAlign: "center", background: "rgba(45,106,79,0.1)", border: "1px solid rgba(45,106,79,0.3)" }}>
-          <Icon name="check" size={24} color="#4CAF7D" />
-          <div style={{ fontFamily: "Calibri, sans-serif", fontWeight: 700, marginTop: "0.5rem", color: "var(--green-light)" }}>
+        <div className="card" style={{ marginTop: "1.5rem", textAlign: "center", background: "rgba(45,140,78,0.06)", border: "1px solid rgba(45,140,78,0.2)" }}>
+          <Icon name="check" size={24} color="#2D8C4E" />
+          <div style={{ fontWeight: 700, marginTop: "0.5rem", color: "var(--green)" }}>
             Pitch erfolgreich generiert!
           </div>
-          <div style={{ fontSize: "0.8rem", color: "var(--soft-gray)", marginTop: "0.25rem", fontFamily: "Calibri, sans-serif" }}>
+          <div style={{ fontSize: "0.8rem", color: "var(--gray-text)", marginTop: "0.25rem" }}>
             {project.generated.phases?.length || 0} Phasen + Gesamtergebnis
           </div>
           <button className="btn btn-success" style={{ marginTop: "1rem" }} onClick={onNavigate}>

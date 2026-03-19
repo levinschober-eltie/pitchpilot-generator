@@ -98,9 +98,9 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="target" size={22} color="#D4A843" /> Phasen & Konfiguration
+        <Icon name="target" size={22} color="#FFCE00" /> Phasen & Konfiguration
       </h2>
-      <p style={{ color: "var(--soft-gray)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
+      <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Wähle die Transformationsphasen und konfiguriere die Parameter.
       </p>
 
@@ -108,19 +108,19 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
       {calc && (
         <div className="card" style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", padding: "0.75rem 1rem" }}>
           {[
-            { label: "Investition", value: fmtEuro(calc.investGesamt), color: "#F5F5F0" },
-            { label: "Einsparung/a", value: fmtEuro(calc.gesamtertrag), color: "#4CAF7D" },
-            { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: "#D4A843" },
-            { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: "#4CAF7D" },
-            { label: "Autarkie", value: `${calc.autarkie}%`, color: "#D4A843" },
-            { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, color: "#E8C97A" },
-            { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, color: "#B0B0A6" },
+            { label: "Investition", value: fmtEuro(calc.investGesamt), color: "#222222" },
+            { label: "Einsparung/a", value: fmtEuro(calc.gesamtertrag), color: "#2D8C4E" },
+            { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: "#FFCE00" },
+            { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: "#2D8C4E" },
+            { label: "Autarkie", value: `${calc.autarkie}%`, color: "#FFCE00" },
+            { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, color: "#E6B800" },
+            { label: "DSCR", value: `${fmtNum(calc.dscr, 2)}`, color: "#666666" },
           ].map((kpi) => (
             <div key={kpi.label} style={{ textAlign: "center", minWidth: 80 }}>
-              <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "1rem", fontWeight: 700, color: kpi.color }}>
+              <div style={{ fontSize: "1rem", fontWeight: 700, color: kpi.color }}>
                 {kpi.value}
               </div>
-              <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.6rem", color: "var(--soft-gray)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+              <div style={{ fontSize: "0.6rem", color: "var(--gray-text)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
                 {kpi.label}
               </div>
             </div>
@@ -137,20 +137,20 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
               onClick={() => togglePhase(i)}
             >
               <div className="toggle-switch" />
-              <Icon name={PHASE_ICONS[p.key] || "target"} size={20} color={p.enabled ? "#D4A843" : "#B0B0A6"} />
+              <Icon name={PHASE_ICONS[p.key] || "target"} size={20} color={p.enabled ? "#FFCE00" : "#666666"} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "Calibri, sans-serif", fontWeight: 700, fontSize: "0.9rem" }}>
+                <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>
                   {["I", "II", "III", "IV", "V", "VI"][i]}. {p.label}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "var(--soft-gray)", fontFamily: "Calibri, sans-serif" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--gray-text)" }}>
                   {PHASE_DESCRIPTIONS[p.key] || ""}
                 </div>
               </div>
               {/* Live investment badge */}
               {p.enabled && calc && investMap[p.key] > 0 && (
                 <span style={{
-                  fontFamily: "Calibri, sans-serif", fontSize: "0.7rem", fontWeight: 700,
-                  color: "#D4A843", background: "rgba(212,168,67,0.1)",
+                  fontSize: "0.7rem", fontWeight: 700,
+                  color: "#222222", background: "rgba(255,206,0,0.15)",
                   padding: "0.2rem 0.5rem", borderRadius: "1rem", whiteSpace: "nowrap",
                 }}>
                   {fmtEuro(investMap[p.key])}
@@ -182,7 +182,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
 
       {/* Finance section */}
       <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <Icon name="money" size={18} color="#D4A843" /> Finanzierung
+        <Icon name="money" size={18} color="#FFCE00" /> Finanzierung
       </h3>
       <div className="card">
         <SliderGroup
@@ -192,7 +192,7 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
         />
         {/* Finance KPIs */}
         {calc && (
-          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(0,0,0,0.08)", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
             {[
               { label: "Eigenkapital", value: fmtEuro(calc.ekBetrag) },
               { label: "Kredit", value: fmtEuro(calc.kreditBetrag) },
@@ -200,9 +200,9 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
               { label: "Gesamtzins", value: fmtEuro(calc.totalZinskosten) },
               { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a` },
             ].map((item) => (
-              <div key={item.label} style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.75rem" }}>
-                <span style={{ color: "var(--soft-gray)" }}>{item.label}: </span>
-                <span style={{ fontWeight: 700, color: "#D4A843" }}>{item.value}</span>
+              <div key={item.label} style={{ fontSize: "0.75rem" }}>
+                <span style={{ color: "var(--gray-text)" }}>{item.label}: </span>
+                <span style={{ fontWeight: 700, color: "#222222" }}>{item.value}</span>
               </div>
             ))}
           </div>

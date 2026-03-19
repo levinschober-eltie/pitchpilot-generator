@@ -57,21 +57,21 @@ export default function EnergyStep({ data, onChange }) {
   return (
     <div className="fade-in">
       <h2 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        <Icon name="bolt" size={22} color="#D4A843" /> Energieprofil
+        <Icon name="bolt" size={22} color="#FFCE00" /> Energieprofil
       </h2>
-      <p style={{ color: "var(--soft-gray)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
+      <p style={{ color: "var(--gray-text)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
         Aktuelle Energieverbräuche und -kosten des Standorts.
       </p>
 
       {/* CSV Upload */}
-      <div className="card" style={{ marginBottom: "1.5rem", border: "1px dashed rgba(212,168,67,0.3)" }}>
+      <div className="card" style={{ marginBottom: "1.5rem", border: "1px dashed rgba(255,206,0,0.3)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <Icon name="chart" size={20} color="#D4A843" />
+          <Icon name="chart" size={20} color="#FFCE00" />
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "Calibri, sans-serif", fontWeight: 700, fontSize: "0.85rem" }}>
+            <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>
               Lastgang-Upload (optional)
             </div>
-            <div style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.75rem", color: "var(--soft-gray)" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--gray-text)" }}>
               CSV mit 15-min oder Stundenwerten. Stromverbrauch & Spitzenlast werden automatisch erkannt.
             </div>
           </div>
@@ -91,17 +91,17 @@ export default function EnergyStep({ data, onChange }) {
           />
         </div>
         {d.lastgangFile && (
-          <div style={{ marginTop: "0.5rem", fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: "var(--green-light)" }}>
+          <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--green-light)" }}>
             <Icon name="check" size={14} color="#4CAF7D" /> {d.lastgangFile}
             {csvResult && (
-              <span style={{ color: "var(--soft-gray)", marginLeft: "0.75rem" }}>
+              <span style={{ color: "var(--gray-text)", marginLeft: "0.75rem" }}>
                 {csvResult.dataPoints.toLocaleString("de-DE")} Datenpunkte · {csvResult.annualMWh.toLocaleString("de-DE")} MWh/a · Peak {csvResult.peakKW.toLocaleString("de-DE")} kW
               </span>
             )}
           </div>
         )}
         {csvError && (
-          <div style={{ marginTop: "0.5rem", fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: "var(--red)" }}>
+          <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--red)" }}>
             {csvError}
           </div>
         )}
@@ -148,7 +148,7 @@ export default function EnergyStep({ data, onChange }) {
           />
         </div>
       </div>
-      <p style={{ fontSize: "0.75rem", color: "var(--soft-gray)" }}>
+      <p style={{ fontSize: "0.75rem", color: "var(--gray-text)" }}>
         Koordinaten für Solar-Ertragsberechnung & Marktanalyse. Später: Import aus SolarStudio.
       </p>
     </div>
