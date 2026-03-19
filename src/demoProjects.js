@@ -1,16 +1,14 @@
 /**
  * Demo projects for PitchPilot Generator.
- * These are pre-configured projects that showcase the platform's capabilities.
- * Based on real customer pitches (Eckart Werke reference implementation).
+ * Pre-configured projects that showcase the platform's capabilities.
+ * Based on the Eckart Werke reference implementation (siteConfig.js).
  */
-
-const COLOR_MAP = { gold: "gold", green: "green", greenLight: "green", warmOrange: "gold" };
 
 /** Eckart Werke — Full reference implementation */
 export const ECKART_PROJECT = {
   id: "demo_eckart",
   name: "Eckart Werke — Energietransformation",
-  step: 4, // all steps completed
+  step: 4,
 
   company: {
     name: "Eckart Werke",
@@ -20,6 +18,13 @@ export const ECKART_PROJECT = {
     employeeCount: 800,
     description: "ECKART GmbH (ALTANA AG) — Metalleffektpigmente & Aluminiumverarbeitung. Standort Hartenstein, Oberfranken. 50 Hektar Gelände, 110-kV-Netzanschluss, bestehende 2 MWp Freiflächen-PV.",
     logoUrl: "",
+  },
+
+  consultant: {
+    company: "Elite PV GmbH",
+    name: "Levin Schober",
+    email: "levinschober@elite-pv.de",
+    label: "Energiewirtschaftliche Konzeptbegleitung",
   },
 
   energy: {
@@ -66,6 +71,7 @@ export const ECKART_PROJECT = {
       tagline: "Integriertes Energiesystem · Hartenstein, Oberfranken",
     },
     phases: [
+      /* ── Phase I: Analyse ── */
       {
         num: "I", title: "Analyse & Bewertung", subtitle: "Das Fundament", months: "Monat 1–3",
         color: "gold", icon: "search",
@@ -86,9 +92,18 @@ export const ECKART_PROJECT = {
           { label: "Zusatz-Potenzial", value: "4,5–9,0 MWp" },
           { label: "110-kV", value: "Dokumentiert" },
         ],
+        investment: [
+          { label: "Standortanalyse & Gutachten", range: "50–80 T€" },
+        ],
+        funding: [
+          { label: "BAFA Energieberatung", value: "bis 80 % Zuschuss" },
+          { label: "KfW 295 (Energieeffizienz)", value: "Tilgungszuschuss" },
+        ],
         investTotal: "50–80 T€",
         roi: "Entscheidungsgrundlage für alle Folgeinvestitionen",
+        roiValue: "~2.000 MWh/a bereits erzeugt",
         independenceScore: 15,
+        independenceLabel: "Bestand + Datenbasis",
         highlights: [
           { icon: "satellite", title: "Drohnen- & Laservermessung", text: "Gesamtes Gelände vollständig digital erfasst — Gebäude, Freiflächen, Verschattung" },
           { icon: "chart", title: "12-Monats-Lastprofil", text: "Reale Verbrauchsdaten in 15-Min-Auflösung als Grundlage für jede Dimensionierung" },
@@ -96,6 +111,7 @@ export const ECKART_PROJECT = {
           { icon: "bolt", title: "Hochspannungs-Netzanalyse", text: "Einspeise- und Bezugskapazität bewertet — Grundlage für das BESS-Ertragsmodell" },
         ],
       },
+      /* ── Phase II: PV ── */
       {
         num: "II", title: "Gebäudehülle & PV", subtitle: "Das physische Fundament", months: "Monat 4–12",
         color: "green", icon: "sun",
@@ -115,9 +131,21 @@ export const ECKART_PROJECT = {
           { label: "Neu: Carport", value: "1,5–3,0 MWp" },
           { label: "Gesamt PV", value: "6,5–11,0 MWp" },
         ],
+        investment: [
+          { label: "Dach-PV (450–850 €/kWp)", range: "1,1–4,3 Mio €" },
+          { label: "Fassaden-PV (450–850 €/kWp)", range: "225–850 T€" },
+          { label: "Carport-PV (1.200 €/kWp)", range: "1,8–3,6 Mio €" },
+        ],
+        funding: [
+          { label: "KfW 270 (Erneuerbare)", value: "Zinsverbilligung" },
+          { label: "Sonder-AfA PV-Anlagen", value: "Steuerliche Abschreibung" },
+          { label: "EEG-Einspeisevergütung", value: "Überschusseinspeisung" },
+        ],
         investTotal: "3,1–8,8 Mio €",
-        roi: ">60 % Eigenverbrauch",
+        roi: "Strombezugskosten-Reduktion + Ladeinfrastruktur",
+        roiValue: ">60 % Eigenverbrauch",
         independenceScore: 45,
+        independenceLabel: "Erweitertes Erzeugungsportfolio",
         highlights: [
           { icon: "factory", title: "Dach-PV auf allen Hallen", text: "Alle priorisierten Cluster saniert und mit PV bestückt — das größte Potenzial am Standort" },
           { icon: "factory", title: "Fassaden-PV Süd/West", text: "Vertikale Module erzeugen auch bei flachem Sonnenstand — ideal für den Winter" },
@@ -125,6 +153,7 @@ export const ECKART_PROJECT = {
           { icon: "chart", title: "Jahreszeitlich optimal", text: "Dach + Fassade + Carport ergänzen den Freiflächen-Bestand für ganzjährig hohe Erträge" },
         ],
       },
+      /* ── Phase III: Speicher ── */
       {
         num: "III", title: "Speicher & Steuerung", subtitle: "Vom Erzeuger zum steuerbaren System", months: "Monat 10–18",
         color: "green", icon: "bolt",
@@ -143,9 +172,19 @@ export const ECKART_PROJECT = {
           { label: "Peak Shaving", value: "10–15 %" },
           { label: "Eigenverbrauch", value: ">80 %" },
         ],
+        investment: [
+          { label: "BESS 6,5–11 MWh (150–225 €/kWh)", range: "1,0–2,5 Mio €" },
+          { label: "EMS & standortweite Integration", range: "120–250 T€" },
+        ],
+        funding: [
+          { label: "KfW 270 (Speicher)", value: "Zinsvergünstigung" },
+          { label: "Landesförderung Bayern", value: "Speicher-Zuschuss" },
+        ],
         investTotal: "1,1–2,7 Mio €",
-        roi: "10–15 % Leistungspreis-Senkung",
+        roi: "Peak Shaving + Spotmarkt-Optimierung",
+        roiValue: "10–15 % Leistungspreis-Senkung",
         independenceScore: 65,
+        independenceLabel: "Steuerbarkeit erreicht",
         highlights: [
           { icon: "battery", title: "1:1 PV-Speicher", text: "Exakt auf die Erzeugungsleistung dimensioniert — maximale Ausnutzung jeder kWh" },
           { icon: "chart", title: "Peak Shaving", text: "Automatische Kappung aller Lastspitzen — messbare Leistungspreis-Reduktion ab Tag 1" },
@@ -153,6 +192,7 @@ export const ECKART_PROJECT = {
           { icon: "search", title: "EMS Echtzeit", text: "Standortweites Energiemanagement mit Prognose-Algorithmus — alle Flüsse in einer Hand" },
         ],
       },
+      /* ── Phase IV: Wärme ── */
       {
         num: "IV", title: "Wärmekonzept", subtitle: "Die vergessene Dimension", months: "Monat 12–24",
         color: "gold", icon: "fire",
@@ -171,9 +211,20 @@ export const ECKART_PROJECT = {
           { label: "Gasreduktion", value: "65–80 %" },
           { label: "CO₂-Reduktion", value: "~2.400 t/a" },
         ],
+        investment: [
+          { label: "WP-Kaskade (400 T€/MW)", range: "2,0–4,0 Mio €" },
+          { label: "Pufferspeicher + Verteilung", range: "1,5–2,5 Mio €" },
+          { label: "Wärmenetz + Dämmung", range: "800 T€–1,5 Mio €" },
+        ],
+        funding: [
+          { label: "BEG (Bundesförderung Effiziente Gebäude)", value: "bis 40 % Zuschuss" },
+          { label: "KfW 261 (Klimafreundl. Nichtwohngebäude)", value: "Tilgungszuschuss" },
+        ],
         investTotal: "4,3–8,0 Mio €",
-        roi: "65–80 % weniger Gas",
+        roi: "Gaskosten-Reduktion + CO₂-Vermeidung",
+        roiValue: "65–80 % weniger Gas",
         independenceScore: 80,
+        independenceLabel: "Thermische Unabhängigkeit",
         highlights: [
           { icon: "fire", title: "WP-Kaskade", text: "Mehrstufige Großwärmepumpen nutzen Abwärme als Quelle — COP 4–5 ganzjährig" },
           { icon: "thermometer", title: "Abwärme-Rückgewinnung", text: "Mühlen, Öfen, Trockner — jede Abwärmequelle wird zur Energiequelle" },
@@ -181,6 +232,7 @@ export const ECKART_PROJECT = {
           { icon: "bolt", title: "Standortweites Wärmenetz", text: "Alle Verbraucher über ein Netz verbunden — keine Wärmeinsel mehr" },
         ],
       },
+      /* ── Phase V: Ladeinfra ── */
       {
         num: "V", title: "Ladeinfrastruktur", subtitle: "Die Elektrifizierung der Mobilität", months: "Monat 18–30",
         color: "green", icon: "plug",
@@ -200,9 +252,21 @@ export const ECKART_PROJECT = {
           { label: "HPC LKW", value: "4–6 × 400 kW" },
           { label: "Lastmanagement", value: "PV-geführt" },
         ],
+        investment: [
+          { label: "AC-Wallboxen (2.500 €/Stk)", range: "150–200 T€" },
+          { label: "DC-Schnelllader", range: "300–450 T€" },
+          { label: "HPC LKW-Depot", range: "800 T€–1,2 Mio €" },
+          { label: "Lastmanagement + Netzanschluss", range: "350–500 T€" },
+        ],
+        funding: [
+          { label: "THG-Quotenhandel + Landesförderung", value: "Erstattung pro Ladepunkt" },
+          { label: "GEIG-Pflicht ab 2026", value: "Regulatorische Compliance" },
+        ],
         investTotal: "1,6–2,4 Mio €",
-        roi: "Komplette Fuhrpark-Elektrifizierung",
+        roi: "Diesel-Einsparung + Compliance",
+        roiValue: "Komplette Fuhrpark-Elektrifizierung",
         independenceScore: 88,
+        independenceLabel: "Mobilität elektrifiziert",
         highlights: [
           { icon: "plug", title: "AC-Ladepark", text: "22-kW-Wallboxen an allen Stellplätzen — Mitarbeiter laden während der Arbeitszeit" },
           { icon: "bolt", title: "DC-Fleet-Charger", text: "150-kW-Schnelllader für den Fuhrpark — Poolfahrzeuge in 30 Min auf 80 %" },
@@ -210,6 +274,7 @@ export const ECKART_PROJECT = {
           { icon: "chart", title: "PV-geführtes Laden", text: "EMS priorisiert Eigenverbrauch — Laden wenn die Sonne scheint" },
         ],
       },
+      /* ── Phase VI: BESS ── */
       {
         num: "VI", title: "Graustrom-BESS", subtitle: "Vom Verbraucher zum Energiehändler", months: "Monat 24–36",
         color: "green", icon: "bolt",
@@ -228,9 +293,19 @@ export const ECKART_PROJECT = {
           { label: "Spread", value: "5–15 ct/kWh" },
           { label: "Rendite", value: "15–25 % p.a." },
         ],
+        investment: [
+          { label: "BESS-Container 200 MWh (175 T€/MWh)", range: "35–42 Mio €" },
+          { label: "Netzanschluss + Trafo", range: "3,5–6,0 Mio €" },
+        ],
+        funding: [
+          { label: "Projektfinanzierung (Non-Recourse SPV)", value: "Cashflow-besichert" },
+          { label: "EU Innovation Fund", value: "Co-Finanzierung" },
+        ],
         investTotal: "38–48 Mio €",
-        roi: "15–25 % p.a.",
+        roi: "Arbitrage + Regelenergie + Redispatch",
+        roiValue: "15–25 % p.a.",
         independenceScore: 95,
+        independenceLabel: "Strategisch unangreifbar",
         highlights: [
           { icon: "battery", title: "100 MW Großspeicher", text: "Einer der größten BESS-Projekte in Deutschland — Skaleneffekte senken €/kWh" },
           { icon: "chart", title: "Vier Erlösströme", text: "Arbitrage, FCR, Redispatch und Inertia — diversifizierte Einnahmen reduzieren das Marktrisiko" },
@@ -265,10 +340,87 @@ export const ECKART_PROJECT = {
       investTotal: "43–70 Mio €",
       autarkie: "50–65 %",
       amortisation: "6–9 Jahre",
+
+      /* ── System KPIs ── */
+      systemKpis: [
+        { label: "GESAMTE PV-LEISTUNG", value: "6,5–11 MWp", sub: "Dach + Fassade + Carport + Bestand" },
+        { label: "STANDORT-SPEICHER", value: "6,5–11 MWh", sub: "Peak Shaving + Eigenverbrauch" },
+        { label: "WÄRMEPUMPEN-KASKADE", value: "5–10 MW", sub: "COP 4–5 · Abwärme-basiert" },
+        { label: "LADEINFRASTRUKTUR", value: "70+ Ladepunkte", sub: "AC + DC + HPC" },
+        { label: "GRAUSTROM-BESS", value: "100 MW / 200 MWh", sub: "Arbitrage + FCR + Redispatch" },
+        { label: "CO₂-EINSPARUNG", value: "~3.800–5.000 t/a", sub: "Strom + Wärme + Mobilität" },
+      ],
+
+      /* ── Investment Roadmap ── */
+      investmentSummary: [
+        { phase: "I",   label: "Analyse & Bewertung",   range: "50–80 T€",        roi: "Entscheidungsgrundlage",      score: 15, maxMio: 0.08 },
+        { phase: "II",  label: "Gebäudehülle & PV",     range: "3,1–8,8 Mio €",   roi: ">60 % Eigenverbrauch",        score: 45, maxMio: 8.8  },
+        { phase: "III", label: "Speicher & Steuerung",   range: "1,1–2,7 Mio €",   roi: "10–15 % Peak Shaving",        score: 65, maxMio: 2.7  },
+        { phase: "IV",  label: "Wärmekonzept",           range: "4,3–8,0 Mio €",   roi: "65–80 % weniger Gas",         score: 80, maxMio: 8.0  },
+        { phase: "V",   label: "Ladeinfrastruktur",      range: "1,6–2,4 Mio €",   roi: "Fuhrpark-Elektrifizierung",   score: 88, maxMio: 2.4  },
+        { phase: "VI",  label: "Graustrom-BESS",         range: "35–48 Mio €",     roi: "15–25 % Rendite p.a.",        score: 95, maxMio: 48   },
+      ],
+
+      /* ── Economic Summary ── */
+      economicSummary: {
+        savings: [
+          { label: "PV-Eigenverbrauch (Stromkosten-Reduktion)", value: "800 T€–1,5 Mio €/a" },
+          { label: "Einspeiseerlöse (EEG 7 ct/kWh)", value: "200–350 T€/a" },
+          { label: "Peak Shaving & Spotmarkt-Optimierung", value: "100–250 T€/a" },
+          { label: "Gaskosten-Reduktion (WP-Kaskade)", value: "300–500 T€/a" },
+          { label: "Mobilitäts-Einsparung (PKW + LKW)", value: "80–150 T€/a" },
+        ],
+        totals: {
+          annualSavings: "1,4–2,5 Mio €/a",
+          investStandort: "8,5–22 Mio €",
+          paybackStandort: "~6–9 Jahre",
+          bessRevenue: "5,2–8,7 Mio €/a",
+        },
+        conclusion: "Das integrierte Energiesystem erreicht eine Standort-Amortisation von 6–9 Jahren bei jährlichen Einsparungen von 1,4–2,5 Mio €. Hinzu kommen 5,2–8,7 Mio €/a aus dem Graustrom-BESS — ein eigenständiges Ertragsmodell mit 15–25 % Rendite, finanzierbar als separates SPV. Zusammen entsteht eine Energieplattform, die Eckart langfristig strategisch unangreifbar macht.",
+      },
+
+      /* ── Strategic Levers ── */
+      levers: [
+        { icon: "sun",     title: "PV-Eigenverbrauch",       desc: "6,5–11 MWp Erzeugung senken den Strombezug um bis zu 50 % — direkte Kostenreduktion ab Tag 1" },
+        { icon: "battery", title: "Speicher & Peak Shaving",  desc: "Standort-BESS kappt Lastspitzen und optimiert den Eigenverbrauch — 10–15 % Leistungspreis-Senkung" },
+        { icon: "fire",    title: "Wärme-Elektrifizierung",   desc: "WP-Kaskade mit COP 4–5 ersetzt 65–80 % des Gasbezugs — größter CO₂-Hebel am Standort" },
+        { icon: "plug",    title: "E-Mobilität",              desc: "70+ Ladepunkte elektrifizieren Fuhrpark und Mitarbeiter-PKW — Dieselkosten entfallen vollständig" },
+        { icon: "bolt",    title: "BESS-Arbitrage",           desc: "100 MW / 200 MWh am 110-kV-Anschluss — vier Erlösströme inkl. Trägheitsmarkt 2026, 15–25 % Rendite p.a." },
+        { icon: "chart",   title: "EMS-Integration",          desc: "Standortweites Energiemanagement steuert alle Flüsse in Echtzeit — maximale Systemeffizienz" },
+      ],
+
+      /* ── Regulatorik ── */
+      regulatorik: [
+        { icon: "leaf",     title: "CSRD / ESG-Reporting",     desc: "Omnibus I (März 2026): Schwellen auf 1.000 MA / 450 Mio € erhöht — ALTANA-Konzern weiterhin berichtspflichtig, Scope 1+2 Reduktion dokumentiert", status: "Adressiert" },
+        { icon: "globe",    title: "EU-Taxonomie",             desc: "Alle Investitionen taxonomie-konform — Zugang zu Green Finance gesichert",             status: "Konform" },
+        { icon: "document", title: "GEIG-Pflicht 2026",        desc: "Ladeinfrastruktur-Pflicht für Nicht-Wohngebäude vollständig erfüllt",                 status: "Erfüllt" },
+        { icon: "bolt",     title: "§14a EnWG (Steuerbare Verbraucher)", desc: "Wärmepumpen und Ladeinfrastruktur netzdienlich steuerbar",                  status: "Ready" },
+        { icon: "factory",  title: "ALTANA Konzernstandards",  desc: "Klimaneutralitätsziel des Konzerns am Standort Hartenstein adressiert",                status: "Aligned" },
+        { icon: "bank",     title: "CO₂-Bepreisung (BEHG)",    desc: "Steigende CO₂-Kosten durch Elektrifizierung weitgehend eliminiert",                   status: "Abgesichert" },
+      ],
+
+      /* ── Risk Management ── */
+      riskManagement: [
+        { icon: "chartDown", title: "Strompreis-Volatilität",   desc: "Eigenverbrauchsquote >80 % reduziert Marktpreisabhängigkeit — Restrisiko durch Speicher gehedgt",  impact: "Niedrig" },
+        { icon: "battery",   title: "BESS-Marktrisiko",         desc: "Vier diversifizierte Erlösströme (Arbitrage, FCR, Redispatch, Inertia) — kein Single-Point-of-Failure", impact: "Mittel" },
+        { icon: "gear",      title: "Technologie-Risiko",       desc: "Ausschließlich marktreife Komponenten (LFP-Batterien, monokristalline PV, Industrie-WP)",          impact: "Niedrig" },
+        { icon: "document",  title: "Regulatorisches Risiko",   desc: "EEG, BEHG, GEIG — alle aktuellen Anforderungen erfüllt, EU-Taxonomie-konform",                    impact: "Niedrig" },
+        { icon: "bolt",      title: "Netzanschluss-Risiko",     desc: "Bestehender 110-kV-Anschluss — kein Netzausbau nötig, Vorabstimmung mit Netzbetreiber empfohlen",  impact: "Mittel" },
+      ],
+
+      /* ── Pillars ── */
+      pillars: [
+        { icon: "sun",     label: "Dezentrale Erzeugung",     phase: "II" },
+        { icon: "battery", label: "Intelligente Speicherung",  phase: "III" },
+        { icon: "fire",    label: "Wärme-Elektrifizierung",    phase: "IV" },
+        { icon: "plug",    label: "Elektromobilität",           phase: "V" },
+        { icon: "bolt",    label: "Energiehandel",              phase: "VI" },
+        { icon: "chart",   label: "System-Steuerung",           phase: "I–VI" },
+      ],
     },
   },
 
-  createdAt: 1710806400000, // 2024-03-19
+  createdAt: 1710806400000,
   updatedAt: Date.now(),
 };
 

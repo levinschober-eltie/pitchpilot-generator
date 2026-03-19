@@ -65,6 +65,9 @@ export function createBlankProject() {
     name: "",
     step: 0,
 
+    // Consultant (optional)
+    consultant: null,
+
     // Step 1: Company
     company: {
       name: "",

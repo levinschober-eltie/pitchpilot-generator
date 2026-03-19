@@ -84,18 +84,21 @@ function setVal(obj, path, value) {
 }
 
 /* ── Independence Score Ring ── */
-function ScoreRing({ score, color }) {
+function ScoreRing({ score, color, label }) {
   const r = 36, c = 2 * Math.PI * r;
   const pct = Math.min(100, Math.max(0, score || 0));
   return (
-    <svg width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
-      <circle cx="45" cy="45" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-      <circle cx="45" cy="45" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 45 45)"
-        style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)" }} />
-      <text x="45" y="42" textAnchor="middle" fill={color} style={{ fontFamily: F, fontSize: "1.3rem", fontWeight: 700 }}>{pct}%</text>
-      <text x="45" y="56" textAnchor="middle" fill="#B0B0A6" style={{ fontFamily: F, fontSize: "0.45rem", letterSpacing: "1px", textTransform: "uppercase" }}>Autarkie</text>
-    </svg>
+    <div style={{ textAlign: "center" }}>
+      <svg width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
+        <circle cx="45" cy="45" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+        <circle cx="45" cy="45" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 45 45)"
+          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)" }} />
+        <text x="45" y="42" textAnchor="middle" fill={color} style={{ fontFamily: F, fontSize: "1.3rem", fontWeight: 700 }}>{pct}%</text>
+        <text x="45" y="56" textAnchor="middle" fill="#B0B0A6" style={{ fontFamily: F, fontSize: "0.45rem", letterSpacing: "1px", textTransform: "uppercase" }}>Autarkie</text>
+      </svg>
+      {label && <div style={{ fontFamily: F, fontSize: "0.6rem", color: "#888", marginTop: "0.25rem", lineHeight: 1.3 }}>{label}</div>}
+    </div>
   );
 }
 
@@ -306,18 +309,58 @@ function PhaseContent({ phase, color, liveKpis }) {
       {/* Results */}
       {phase.results?.length > 0 && (
         <>
-          <div style={S.sectionHeading}>Ergebnisse</div>
+          <div style={S.sectionHeading}>Lieferergebnisse</div>
           <ul style={{ fontFamily: F, fontSize: "0.8rem", color: "#B0B0A6", paddingLeft: "1.2rem", lineHeight: 1.8 }}>
             {phase.results.map((r, i) => <li key={i}>{r}</li>)}
           </ul>
         </>
       )}
 
-      {/* Investment (live) */}
-      {phase.investTotal && (
+      {/* Investment Detail */}
+      {phase.investment?.length > 0 ? (
+        <div style={{ marginTop: "1.25rem" }}>
+          <div style={S.sectionHeading}>Investition</div>
+          {phase.investment.map((inv, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <span style={{ fontFamily: F, fontSize: "0.8rem", color: "#B0B0A6" }}>{inv.label}</span>
+              <span style={{ fontFamily: F, fontSize: "0.8rem", fontWeight: 600, color }}>{inv.range}</span>
+            </div>
+          ))}
+          {phase.investTotal && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0 0", borderTop: `1px solid ${color}30`, marginTop: "0.25rem" }}>
+              <span style={{ fontFamily: F, fontSize: "0.85rem", fontWeight: 700, color }}>Gesamtinvestition</span>
+              <span style={{ fontFamily: F, fontSize: "0.95rem", fontWeight: 700, color }}>{phase.investTotal}</span>
+            </div>
+          )}
+        </div>
+      ) : phase.investTotal && (
         <div style={{ marginTop: "1rem", padding: "0.5rem 0.75rem", background: "rgba(255,255,255,0.03)", borderRadius: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={S.labelSmall}>Investition</span>
           <span style={{ ...S.valueText, color }}>{phase.investTotal}</span>
+        </div>
+      )}
+
+      {/* Funding */}
+      {phase.funding?.length > 0 && (
+        <div style={{ marginTop: "1rem" }}>
+          <div style={S.sectionHeading}>Fördermittel</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem" }}>
+            {phase.funding.map((f, i) => (
+              <div key={i} style={{ ...S.cardBase, border: `1px solid ${color}15` }}>
+                <div style={{ fontFamily: F, fontSize: "0.7rem", color: "#B0B0A6" }}>{f.label}</div>
+                <div style={{ fontFamily: F, fontSize: "0.75rem", fontWeight: 600, color }}>{f.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ROI */}
+      {(phase.roi || phase.roiValue) && (
+        <div style={{ marginTop: "1rem", padding: "0.6rem 0.75rem", background: `${color}08`, borderRadius: "6px", border: `1px solid ${color}20` }}>
+          <div style={S.labelSmall}>Return on Investment</div>
+          {phase.roi && <div style={{ fontFamily: F, fontSize: "0.8rem", color: "#B0B0A6", marginTop: "0.2rem" }}>{phase.roi}</div>}
+          {phase.roiValue && <div style={{ fontFamily: F, fontSize: "1rem", fontWeight: 700, color, marginTop: "0.15rem" }}>{phase.roiValue}</div>}
         </div>
       )}
     </div>
@@ -325,8 +368,9 @@ function PhaseContent({ phase, color, liveKpis }) {
 }
 
 /* ── Final Summary ── */
-function FinalSummary({ summary, calc, heroCards, color }) {
+function FinalSummary({ summary, calc, heroCards, color, project }) {
   if (!summary && !calc) return null;
+  const green = C.greenLight || C.green;
 
   return (
     <div style={{ animation: "fadeSlideIn 0.5s ease forwards" }}>
@@ -340,7 +384,7 @@ function FinalSummary({ summary, calc, heroCards, color }) {
       {heroCards?.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${heroCards.length}, 1fr)`, gap: "1rem", marginBottom: "1.5rem" }}>
           {heroCards.map((card, i) => {
-            const cardColor = card.accent === "green" ? (C.greenLight || C.green) : C.gold;
+            const cardColor = card.accent === "green" ? green : C.gold;
             return (
               <div key={i} style={{
                 background: `linear-gradient(135deg, ${cardColor}15, ${cardColor}08)`,
@@ -360,43 +404,234 @@ function FinalSummary({ summary, calc, heroCards, color }) {
         </div>
       )}
 
-      {/* Summary KPIs (live) */}
+      {/* Ihre Gesamtberechnung (live calc) */}
       {calc && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-          <div style={{ ...S.cardBase, textAlign: "center", padding: "0.75rem" }}>
-            <div style={S.labelSmall}>Gesamtinvestition</div>
-            <div style={{ ...S.valueText, color: C.gold, fontSize: "1.2rem", marginTop: "0.25rem" }}>{fmtEuro(calc.investGesamt)}</div>
-          </div>
-          <div style={{ ...S.cardBase, textAlign: "center", padding: "0.75rem" }}>
-            <div style={S.labelSmall}>Autarkiegrad</div>
-            <div style={{ ...S.valueText, color: C.greenLight || C.green, fontSize: "1.2rem", marginTop: "0.25rem" }}>{fmtNum(calc.autarkie)}%</div>
-          </div>
-          <div style={{ ...S.cardBase, textAlign: "center", padding: "0.75rem" }}>
-            <div style={S.labelSmall}>Amortisation</div>
-            <div style={{ ...S.valueText, color: C.gold, fontSize: "1.2rem", marginTop: "0.25rem" }}>{fmtNum(calc.amortisationGesamt, 1)} Jahre</div>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Ihre Gesamtberechnung</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
+            {[
+              { label: "Invest Standort", value: fmtEuro(calc.investStandort), c: C.gold },
+              { label: "Invest BESS", value: fmtEuro(calc.investPhase6 || 0), c: C.gold },
+              { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), c: C.gold },
+              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, c: green },
+              { label: "Einsparung/a", value: `${fmtEuro(calc.einsparungStandort)}/a`, c: green },
+              { label: "BESS-Erlöse/a", value: `${fmtEuro(calc.bessErloes)}/a`, c: green },
+              { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, c: C.gold },
+              { label: "BESS-Rendite", value: `${fmtNum(calc.bessRendite, 1)}% p.a.`, c: green },
+            ].map((item, i) => (
+              <div key={i} style={{ ...S.cardBase, textAlign: "center", padding: "0.6rem 0.4rem" }}>
+                <div style={{ ...S.labelSmall, fontSize: "0.55rem" }}>{item.label}</div>
+                <div style={{ fontFamily: F, fontSize: "0.95rem", fontWeight: 700, color: item.c, marginTop: "0.15rem" }}>{item.value}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Detailed financial breakdown */}
-      {calc && (
-        <div style={{ marginTop: "1.5rem" }}>
-          <div style={S.sectionHeading}>Investitions-Übersicht</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-            {[
-              { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}% p.a.`, color: C.gold },
-              { label: "DSCR", value: fmtNum(calc.dscr, 2), color: calc.dscr >= 1.2 ? (C.greenLight || C.green) : "#E74C3C" },
-              { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, color: C.softGray },
-              { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, color: calc.cfNachSchuldendienst > 0 ? (C.greenLight || C.green) : "#E74C3C" },
-              { label: "Standort-Invest (I–V)", value: fmtEuro(calc.investStandort), color: "#B0B0A6" },
-              { label: "BESS-Invest (VI)", value: fmtEuro(calc.investPhase6 || 0), color: "#B0B0A6" },
-            ].map((item, i) => (
-              <div key={i} style={{ ...S.cardBase, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={S.labelSmall}>{item.label}</span>
-                <span style={{ ...S.valueText, color: item.color, fontSize: "0.9rem" }}>{item.value}</span>
+      {/* System KPIs */}
+      {summary?.systemKpis?.length > 0 && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Systemübersicht</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.6rem" }}>
+            {summary.systemKpis.map((kpi, i) => (
+              <div key={i} style={{ ...S.cardBase, padding: "0.75rem", textAlign: "center", border: `1px solid ${color}15` }}>
+                <div style={{ fontFamily: F, fontSize: "1.1rem", fontWeight: 700, color }}>{kpi.value}</div>
+                <div style={{ ...S.labelSmall, fontSize: "0.6rem", marginTop: "0.2rem" }}>{kpi.label}</div>
+                {kpi.sub && <div style={{ fontFamily: F, fontSize: "0.65rem", color: "#777", marginTop: "0.15rem" }}>{kpi.sub}</div>}
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Investment Roadmap */}
+      {summary?.investmentSummary?.length > 0 && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Investitions-Roadmap · Rendite pro Baustein</div>
+          {summary.investmentSummary.map((item, i) => {
+            const maxVal = Math.max(...summary.investmentSummary.map(s => s.maxMio || 1));
+            const barPct = ((item.maxMio || 0) / maxVal) * 100;
+            return (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 110px 55px 85px", gap: "0.5rem", alignItems: "center", padding: "0.35rem 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <span style={{ fontFamily: F, fontSize: "0.7rem", fontWeight: 700, color }}>{item.phase}</span>
+                <span style={{ fontFamily: F, fontSize: "0.75rem", color: "#B0B0A6" }}>{item.label}</span>
+                <div style={{ position: "relative", height: 14, background: "rgba(255,255,255,0.04)", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${barPct}%`, background: `${color}40`, borderRadius: 3, transition: "width 0.5s" }} />
+                  <span style={{ position: "relative", fontFamily: F, fontSize: "0.6rem", color: "#ccc", padding: "0 4px", lineHeight: "14px" }}>{item.range}</span>
+                </div>
+                <span style={{ fontFamily: F, fontSize: "0.6rem", color: green, textAlign: "right" }}>{item.score}%</span>
+                <span style={{ fontFamily: F, fontSize: "0.6rem", color: C.gold, textAlign: "right", fontWeight: 600 }}>{item.roi}</span>
+              </div>
+            );
+          })}
+          {/* Total row */}
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0 0", borderTop: `1px solid ${color}30`, marginTop: "0.25rem" }}>
+            <span style={{ fontFamily: F, fontSize: "0.85rem", fontWeight: 700, color }}>Gesamtinvestition</span>
+            <span style={{ fontFamily: F, fontSize: "0.85rem", fontWeight: 700, color }}>{summary.investTotal || (calc ? fmtEuro(calc.investGesamt) : "")}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Economic Summary */}
+      {summary?.economicSummary && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Gesamtwirtschaftliche Betrachtung</div>
+          {summary.economicSummary.savings?.length > 0 && (
+            <div style={{ marginBottom: "0.75rem" }}>
+              {summary.economicSummary.savings.map((s, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.3rem 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <span style={{ fontFamily: F, fontSize: "0.78rem", color: "#B0B0A6" }}>{s.label}</span>
+                  <span style={{ fontFamily: F, fontSize: "0.78rem", fontWeight: 600, color: green }}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {summary.economicSummary.totals && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              {[
+                { label: "Jährl. Einsparungen", value: summary.economicSummary.totals.annualSavings, c: green },
+                { label: "Invest Standort", value: summary.economicSummary.totals.investStandort, c: C.gold },
+                { label: "Amortisation", value: summary.economicSummary.totals.paybackStandort, c: C.gold },
+                { label: "BESS-Erlöse", value: summary.economicSummary.totals.bessRevenue, c: green },
+              ].filter(t => t.value).map((t, i) => (
+                <div key={i} style={{ ...S.cardBase, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={S.labelSmall}>{t.label}</span>
+                  <span style={{ fontFamily: F, fontSize: "0.85rem", fontWeight: 700, color: t.c }}>{t.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {summary.economicSummary.conclusion && (
+            <div style={{ fontFamily: F, fontSize: "0.8rem", fontStyle: "italic", color: "#999", lineHeight: 1.6, padding: "0.5rem 0.75rem", background: "rgba(255,255,255,0.02)", borderRadius: 6, borderLeft: `3px solid ${color}40` }}>
+              {summary.economicSummary.conclusion}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Financial Detail (live) */}
+      {calc && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Finanzierungs-Detail</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
+            {[
+              { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}% p.a.`, c: C.gold },
+              { label: "DSCR", value: fmtNum(calc.dscr, 2), c: calc.dscr >= 1.2 ? green : "#E74C3C" },
+              { label: "Annuität", value: `${fmtEuro(calc.annuitaet)}/a`, c: C.softGray },
+              { label: "CF nach FK", value: `${fmtEuro(calc.cfNachSchuldendienst)}/a`, c: calc.cfNachSchuldendienst > 0 ? green : "#E74C3C" },
+              { label: "Eigenkapital", value: fmtEuro(calc.ekBetrag), c: "#B0B0A6" },
+              { label: "Kreditbetrag", value: fmtEuro(calc.kreditBetrag), c: "#B0B0A6" },
+            ].map((item, i) => (
+              <div key={i} style={{ ...S.cardBase, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={S.labelSmall}>{item.label}</span>
+                <span style={{ ...S.valueText, color: item.c, fontSize: "0.85rem" }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Levers */}
+      {summary?.levers?.length > 0 && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Strategische Hebel</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            {summary.levers.map((l, i) => (
+              <div key={i} style={{ ...S.cardBase, padding: "0.6rem", border: `1px solid ${color}12` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.25rem" }}>
+                  <Icon name={l.icon} size={14} color={color} />
+                  <span style={{ fontFamily: F, fontSize: "0.78rem", fontWeight: 700, color }}>{l.title}</span>
+                </div>
+                <div style={{ fontFamily: F, fontSize: "0.72rem", color: "#999", lineHeight: 1.4 }}>{l.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Regulatorik */}
+      {summary?.regulatorik?.length > 0 && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Regulatorik & Compliance</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            {summary.regulatorik.map((r, i) => (
+              <div key={i} style={{ ...S.cardBase, padding: "0.6rem", border: `1px solid ${color}12` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                    <Icon name={r.icon} size={13} color={color} />
+                    <span style={{ fontFamily: F, fontSize: "0.75rem", fontWeight: 700, color }}>{r.title}</span>
+                  </div>
+                  <span style={{ fontFamily: F, fontSize: "0.55rem", fontWeight: 700, color: green, background: `${green}15`, padding: "0.1rem 0.4rem", borderRadius: "1rem", letterSpacing: "0.5px", textTransform: "uppercase" }}>{r.status}</span>
+                </div>
+                <div style={{ fontFamily: F, fontSize: "0.68rem", color: "#888", lineHeight: 1.35 }}>{r.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Risk Management */}
+      {summary?.riskManagement?.length > 0 && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Risikomanagement</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            {summary.riskManagement.map((r, i) => {
+              const impactColor = r.impact === "Niedrig" ? green : r.impact === "Mittel" ? C.gold : "#E74C3C";
+              return (
+                <div key={i} style={{ ...S.cardBase, padding: "0.6rem", border: `1px solid ${color}12` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <Icon name={r.icon} size={13} color={color} />
+                      <span style={{ fontFamily: F, fontSize: "0.75rem", fontWeight: 700, color }}>{r.title}</span>
+                    </div>
+                    <span style={{ fontFamily: F, fontSize: "0.55rem", fontWeight: 700, color: impactColor, background: `${impactColor}15`, padding: "0.1rem 0.4rem", borderRadius: "1rem", letterSpacing: "0.5px", textTransform: "uppercase" }}>{r.impact}</span>
+                  </div>
+                  <div style={{ fontFamily: F, fontSize: "0.68rem", color: "#888", lineHeight: 1.35 }}>{r.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Pillars */}
+      {summary?.pillars?.length > 0 && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ ...S.sectionHeading, color }}>Transformations-Säulen</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "center" }}>
+            {summary.pillars.map((p, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: "0.35rem",
+                padding: "0.4rem 0.8rem", borderRadius: "2rem",
+                border: `1px solid ${color}30`, background: `${color}08`,
+              }}>
+                <Icon name={p.icon} size={14} color={color} />
+                <span style={{ fontFamily: F, fontSize: "0.7rem", fontWeight: 700, color }}>{p.label}</span>
+                <span style={{ fontFamily: F, fontSize: "0.55rem", color: "#777" }}>Phase {p.phase}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CTA / Consultant */}
+      {project?.consultant && (
+        <div style={{ marginTop: "2rem", textAlign: "center", padding: "1.5rem", background: `${color}08`, borderRadius: 12, border: `1px solid ${color}20` }}>
+          <div style={{ ...S.labelTiny, color, marginBottom: "0.75rem", letterSpacing: "2px" }}>Nächster Schritt</div>
+          <div style={{ fontFamily: F, fontSize: "1rem", color: C.warmWhite, marginBottom: "0.5rem" }}>
+            {project.consultant.name} · {project.consultant.company}
+          </div>
+          <div style={{ fontFamily: F, fontSize: "0.8rem", color: "#999" }}>{project.consultant.label}</div>
+          {project.consultant.email && (
+            <a href={`mailto:${project.consultant.email}`} style={{
+              display: "inline-block", marginTop: "0.75rem", padding: "0.5rem 1.5rem",
+              borderRadius: "2rem", background: `${color}20`, border: `1px solid ${color}40`,
+              color, fontFamily: F, fontSize: "0.75rem", fontWeight: 700, textDecoration: "none",
+              letterSpacing: "1px", textTransform: "uppercase",
+            }}>
+              Kontakt aufnehmen
+            </a>
+          )}
         </div>
       )}
     </div>
@@ -620,7 +855,7 @@ export default function PresentationRenderer() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "2rem", alignItems: "start" }}>
           <div ref={contentRef}>
             {isFinal ? (
-              <FinalSummary summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} />
+              <FinalSummary summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} project={project} />
             ) : (
               <PhaseContent phase={currentPhase} color={currentColor} liveKpis={liveKpis} />
             )}
@@ -629,6 +864,7 @@ export default function PresentationRenderer() {
             <ScoreRing
               score={isFinal ? calc?.autarkie : (calc?.autarkie || currentPhase?.independenceScore)}
               color={currentColor}
+              label={isFinal ? "Strategischer Standortvorteil" : currentPhase?.independenceLabel}
             />
             {/* Live invest for current phase */}
             {!isFinal && calc && currentPhaseKey && (
