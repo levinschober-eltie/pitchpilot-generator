@@ -190,96 +190,6 @@ function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
   );
 }
 
-/* ── Config Overlay (Slide-In) ── */
-function ConfigOverlay({ project, calc, onUpdate, onClose }) {
-  const overlayRef = useRef(null);
-
-  useEffect(() => {
-    const handle = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handle);
-    return () => document.removeEventListener("keydown", handle);
-  }, [onClose]);
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 99,
-      }} />
-
-      {/* Panel */}
-      <div ref={overlayRef} style={{
-        position: "fixed", top: 0, right: 0, bottom: 0, width: 360,
-        background: `${C.navyDeep}f8`, backdropFilter: "blur(12px)",
-        borderLeft: `1px solid ${C.gold}25`, zIndex: 100,
-        overflowY: "auto", padding: "1rem 1.25rem",
-        boxShadow: "-4px 0 30px rgba(0,0,0,0.5)",
-        animation: "slideInRight 0.3s ease",
-      }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-          <div style={{ fontFamily: F, fontSize: "0.7rem", letterSpacing: "2px", textTransform: "uppercase", fontWeight: 700, color: C.gold, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Icon name="settings" size={14} color={C.gold} /> KONFIGURATION
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", padding: "0.3rem" }}>
-            <Icon name="close" size={16} color="#888" />
-          </button>
-        </div>
-
-        {/* Slider Groups */}
-        {CONFIG_GROUPS.map(group => (
-          <div key={group.title} style={{ marginBottom: "1.25rem" }}>
-            <div style={{
-              fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase",
-              fontWeight: 700, color: C.gold, marginBottom: "0.5rem",
-              display: "flex", alignItems: "center", gap: "0.35rem",
-              paddingBottom: "0.3rem", borderBottom: `1px solid ${C.gold}15`,
-            }}>
-              <Icon name={group.icon} size={12} color={C.gold} /> {group.title}
-            </div>
-            {group.sliders.map(s => (
-              <ConfigSlider
-                key={s.path.join(".")}
-                label={s.label}
-                value={getVal(project, s.path) ?? 0}
-                min={s.min} max={s.max} step={s.step}
-                unit={s.unit} dec={s.dec}
-                onChange={v => onUpdate(s.path, v)}
-              />
-            ))}
-          </div>
-        ))}
-
-        {/* Live KPI Summary */}
-        {calc && (
-          <div style={{
-            marginTop: "0.5rem", padding: "0.75rem",
-            background: `rgba(255,255,255,0.03)`, borderRadius: 8,
-            border: `1px solid ${C.gold}15`,
-          }}>
-            <div style={{ fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: C.greenLight || C.green, marginBottom: "0.5rem" }}>
-              LIVE-ERGEBNIS
-            </div>
-            {[
-              { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), color: C.gold },
-              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight || C.green },
-              { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: C.gold },
-              { label: "Jährl. Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.greenLight || C.green },
-              { label: "CO₂-Einsparung", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: C.greenLight || C.green },
-              { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, color: C.gold },
-              { label: "DSCR", value: fmtNum(calc.dscr, 2), color: calc.dscr >= 1.2 ? (C.greenLight || C.green) : "#E74C3C" },
-            ].map(item => (
-              <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.2rem 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                <span style={{ fontFamily: F, fontSize: "0.7rem", color: "#999" }}>{item.label}</span>
-                <span style={{ fontFamily: F, fontSize: "0.78rem", fontWeight: 700, color: item.color }}>{item.value}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
 
 /* ── Phase Content (Eckart-Style Layout) ── */
 function PhaseContent({ phase, color, liveKpis }) {
@@ -700,8 +610,7 @@ export default function PresentationRenderer() {
   const [project, setProject] = useState(() => getProject(id));
   const [active, setActive] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [marketOpen, setMarketOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const contentRef = useRef(null);
 
@@ -741,7 +650,7 @@ export default function PresentationRenderer() {
 
   // Keyboard navigation
   useEffect(() => {
-    if (showIntro || configOpen) return;
+    if (showIntro || analysisOpen) return;
     const handle = (e) => {
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
@@ -757,7 +666,7 @@ export default function PresentationRenderer() {
     };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);
-  }, [showIntro, configOpen, project?.generated?.phases?.length]);
+  }, [showIntro, analysisOpen, project?.generated?.phases?.length]);
 
   if (!project?.generated) {
     return (
@@ -873,17 +782,13 @@ export default function PresentationRenderer() {
             Phasenkonzept zur Energietransformation
           </h1>
           <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
-            <button onClick={() => setConfigOpen(true)} style={{
+            <button onClick={() => setAnalysisOpen(o => !o)} style={{
               ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
-              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: C.softGray,
+              background: analysisOpen ? `${C.gold}20` : "rgba(255,255,255,0.06)",
+              border: `1px solid ${analysisOpen ? `${C.gold}40` : "rgba(255,255,255,0.12)"}`,
+              color: analysisOpen ? C.gold : C.softGray,
             }}>
-              <Icon name="settings" size={12} color={C.gold} /> Konfiguration
-            </button>
-            <button onClick={() => setMarketOpen(true)} style={{
-              ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
-              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: C.softGray,
-            }}>
-              <Icon name="chart" size={12} color={C.gold} /> Marktanalyse
+              <Icon name="chart" size={12} color={analysisOpen ? C.gold : C.softGray} /> Analyse & Kalkulation
             </button>
             <button onClick={() => setPdfOpen(true)} style={{
               ...S.pillBtn, padding: "0.35rem 1rem", fontSize: "0.82rem", fontWeight: 600,
@@ -1108,31 +1013,123 @@ export default function PresentationRenderer() {
         }
         @media (max-width: 768px) {
           .pitch-grid { grid-template-columns: 1fr !important; }
+          .analysis-split { flex-direction: column !important; }
+          .analysis-split > div:first-child { width: 100% !important; max-height: 40vh; border-right: none !important; border-bottom: 1px solid rgba(212,168,67,0.2); }
         }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
       `}</style>
 
-      {/* Config Overlay */}
-      {configOpen && (
-        <ConfigOverlay
-          project={project}
-          calc={calc}
-          onUpdate={updateConfig}
-          onClose={() => setConfigOpen(false)}
-        />
+      {/* ── Unified Analyse & Kalkulation Overlay (Eckart-Style) ── */}
+      {analysisOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Analyse & Kalkulation" style={{
+          position: "fixed", inset: 0, zIndex: 9000, background: "rgba(10,18,32,0.97)",
+          display: "flex", flexDirection: "column",
+        }}>
+          {/* Sticky header */}
+          <div style={{
+            position: "sticky", top: 0, zIndex: 10,
+            background: "rgba(27,42,74,0.97)", backdropFilter: "blur(12px)",
+            borderBottom: `1px solid ${C.gold}20`, padding: "0.6rem 1.2rem",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontFamily: F, fontSize: "1.1rem", fontWeight: 700, color: C.gold, letterSpacing: "0.5px" }}>
+                Analyse & Kalkulation
+              </div>
+              <button onClick={() => setAnalysisOpen(false)} aria-label="Panel schließen" style={{
+                background: "none", border: "none", cursor: "pointer", padding: "0.3rem",
+              }}>
+                <Icon name="close" size={14} color="#888" />
+              </button>
+            </div>
+            <div style={{ fontFamily: F, fontSize: "0.68rem", color: C.softGray, marginTop: "0.15rem" }}>
+              Kalkulation · Marktanalyse · BESS-Optimierung
+            </div>
+          </div>
+
+          {/* Split layout: Left Config + Right MarketAnalysis */}
+          <div className="analysis-split" style={{ flex: 1, overflow: "auto", display: "flex" }}>
+            {/* Left sidebar: Konfiguration sliders */}
+            <div style={{
+              width: "min(380px, 40vw)", flexShrink: 0,
+              borderRight: `1px solid ${C.gold}20`,
+              background: "rgba(27,42,74,0.3)",
+              overflowY: "auto", padding: "1rem 1.25rem",
+            }}>
+              {/* Slider Groups */}
+              {CONFIG_GROUPS.map(group => (
+                <div key={group.title} style={{ marginBottom: "1.25rem" }}>
+                  <div style={{
+                    fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase",
+                    fontWeight: 700, color: C.gold, marginBottom: "0.5rem",
+                    display: "flex", alignItems: "center", gap: "0.35rem",
+                    paddingBottom: "0.3rem", borderBottom: `1px solid ${C.gold}15`,
+                  }}>
+                    <Icon name={group.icon} size={12} color={C.gold} /> {group.title}
+                  </div>
+                  {group.sliders.map(s => (
+                    <ConfigSlider
+                      key={s.path.join(".")}
+                      label={s.label}
+                      value={getVal(project, s.path) ?? 0}
+                      min={s.min} max={s.max} step={s.step}
+                      unit={s.unit} dec={s.dec}
+                      onChange={v => updateConfig(s.path, v)}
+                    />
+                  ))}
+                </div>
+              ))}
+
+              {/* Live KPI Summary */}
+              {calc && (
+                <div style={{
+                  marginTop: "0.5rem", padding: "0.75rem",
+                  background: "rgba(255,255,255,0.03)", borderRadius: 8,
+                  border: `1px solid ${C.gold}15`,
+                }}>
+                  <div style={{ fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: C.greenLight || C.green, marginBottom: "0.5rem" }}>
+                    LIVE-ERGEBNIS
+                  </div>
+                  {[
+                    { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), color: C.gold },
+                    { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight || C.green },
+                    { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: C.gold },
+                    { label: "Jährl. Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.greenLight || C.green },
+                    { label: "CO₂-Einsparung", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: C.greenLight || C.green },
+                    { label: "EK-Rendite", value: `${fmtNum(calc.ekRendite, 1)}%`, color: C.gold },
+                    { label: "DSCR", value: fmtNum(calc.dscr, 2), color: calc.dscr >= 1.2 ? (C.greenLight || C.green) : "#E74C3C" },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.2rem 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                      <span style={{ fontFamily: F, fontSize: "0.7rem", color: "#999" }}>{item.label}</span>
+                      <span style={{ fontFamily: F, fontSize: "0.78rem", fontWeight: 700, color: item.color }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right main area: Marktanalyse */}
+            <div style={{ flex: 1, overflow: "auto" }}>
+              <Suspense fallback={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: C.softGray }}>
+                  Marktanalyse wird geladen...
+                </div>
+              }>
+                <MarketAnalysis
+                  project={project}
+                  onClose={() => setAnalysisOpen(false)}
+                  onResults={updateMarket}
+                  inline
+                />
+              </Suspense>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Modals */}
+      {/* PDF Modal */}
       <Suspense fallback={null}>
-        {marketOpen && (
-          <MarketAnalysis
-            project={project}
-            onClose={() => setMarketOpen(false)}
-            onResults={updateMarket}
-          />
-        )}
         {pdfOpen && <PdfExport project={project} onClose={() => setPdfOpen(false)} />}
       </Suspense>
     </div>
