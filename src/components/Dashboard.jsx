@@ -73,6 +73,9 @@ export default function Dashboard() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.25rem" }}>
+                <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/edit/${p.id}`); }} title="Einstellungen">
+                  <Icon name="settings" size={12} />
+                </button>
                 <button className="btn btn-secondary btn-sm" onClick={(e) => handleDuplicate(e, p.id)} title="Duplizieren">
                   <Icon name="copy" size={12} />
                 </button>
