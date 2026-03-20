@@ -4,6 +4,7 @@ import Dashboard from "./components/Dashboard";
 
 const Wizard = lazy(() => import("./components/Wizard"));
 const Presentation = lazy(() => import("./components/PresentationRenderer"));
+const SharedPresentation = lazy(() => import("./components/SharedPresentation"));
 const Settings = lazy(() => import("./components/Settings"));
 
 function Loading() {
@@ -18,12 +19,14 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const isPresentation = location.pathname.startsWith("/present/");
+  const isShared = location.pathname.startsWith("/shared");
 
-  if (isPresentation) {
+  if (isPresentation || isShared) {
     return (
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/present/:id" element={<Presentation />} />
+          <Route path="/shared" element={<SharedPresentation />} />
         </Routes>
       </Suspense>
     );

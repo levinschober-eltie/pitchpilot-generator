@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, startTransition, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getProject, saveProject } from "../store";
+import { getProject, saveProject, createVersion, renameVersion, deleteVersion, restoreVersion, encodeSharePayload } from "../store";
 import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
 import { C } from "../colors";
 import Icon from "./Icons";
@@ -601,6 +601,203 @@ function FinalSummary({ summary, calc, heroCards, color, project }) {
   );
 }
 
+/* ── Version Manager Overlay ── */
+function VersionManager({ project, onClose, onRestore }) {
+  const [versions, setVersions] = useState(project.versions || []);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [shareUrl, setShareUrl] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const refresh = () => {
+    const fresh = getProject(project.id);
+    setVersions(fresh?.versions || []);
+  };
+
+  const handleRename = (vid) => {
+    if (editName.trim()) {
+      renameVersion(project.id, vid, editName.trim());
+      refresh();
+    }
+    setEditingId(null);
+  };
+
+  const handleDelete = (vid) => {
+    if (confirm("Version wirklich löschen?")) {
+      deleteVersion(project.id, vid);
+      refresh();
+    }
+  };
+
+  const handleRestore = (vid) => {
+    const restored = restoreVersion(project.id, vid);
+    if (restored && onRestore) onRestore(restored);
+  };
+
+  const handleShare = async (vid) => {
+    const url = await encodeSharePayload(project, vid);
+    if (url) {
+      setShareUrl(url);
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedId(vid);
+        setTimeout(() => setCopiedId(null), 2000);
+      });
+    }
+  };
+
+  const handleShareCurrent = async () => {
+    const url = await encodeSharePayload(project);
+    if (url) {
+      setShareUrl(url);
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedId("current");
+        setTimeout(() => setCopiedId(null), 2000);
+      });
+    }
+  };
+
+  const handleNewVersion = () => {
+    const name = prompt("Versionsname:", `Version ${versions.length + 1}`);
+    if (name) {
+      createVersion(project.id, name, "owner");
+      refresh();
+    }
+  };
+
+  return (
+    <div role="dialog" aria-modal="true" style={{
+      position: "fixed", inset: 0, zIndex: 9500, background: "rgba(10,18,32,0.95)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <div style={{
+        background: C.navy, borderRadius: 16, border: `1px solid ${C.gold}30`,
+        width: "min(600px, 90vw)", maxHeight: "80vh", overflow: "hidden",
+        display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "1rem 1.5rem", borderBottom: `1px solid ${C.gold}20`,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <div>
+            <div style={{ fontFamily: F, fontSize: "1.1rem", fontWeight: 700, color: C.gold }}>Versionen & Teilen</div>
+            <div style={{ fontFamily: F, fontSize: "0.7rem", color: C.softGray, marginTop: "0.15rem" }}>
+              {versions.length} Version{versions.length !== 1 ? "en" : ""} gespeichert
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer" }}>
+            <Icon name="close" size={16} color="#888" />
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div style={{ padding: "0.75rem 1.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <button onClick={handleNewVersion} style={{
+            ...S.pillBtn, padding: "0.35rem 0.8rem",
+            background: `${C.gold}15`, border: `1px solid ${C.gold}40`, color: C.gold,
+          }}>
+            <Icon name="plus" size={12} /> Neue Version
+          </button>
+          <button onClick={handleShareCurrent} style={{
+            ...S.pillBtn, padding: "0.35rem 0.8rem",
+            background: copiedId === "current" ? `${C.greenLight}15` : "rgba(255,255,255,0.06)",
+            border: `1px solid ${copiedId === "current" ? `${C.greenLight}40` : "rgba(255,255,255,0.12)"}`,
+            color: copiedId === "current" ? C.greenLight : C.softGray,
+          }}>
+            <Icon name={copiedId === "current" ? "check" : "copy"} size={12} />
+            {copiedId === "current" ? "Link kopiert!" : "Aktuellen Stand teilen"}
+          </button>
+        </div>
+
+        {/* Version List */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0.75rem 1.5rem" }}>
+          {versions.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "2rem", color: C.softGray, fontFamily: F, fontSize: "0.85rem" }}>
+              Noch keine Versionen erstellt.<br />
+              <span style={{ fontSize: "0.75rem", color: "#666" }}>Erstelle eine Version, um den aktuellen Stand zu sichern.</span>
+            </div>
+          ) : (
+            versions.map(v => (
+              <div key={v.id} style={{
+                padding: "0.75rem", marginBottom: "0.5rem", borderRadius: 10,
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                  {editingId === v.id ? (
+                    <input value={editName} onChange={e => setEditName(e.target.value)}
+                      onBlur={() => handleRename(v.id)}
+                      onKeyDown={e => { if (e.key === "Enter") handleRename(v.id); if (e.key === "Escape") setEditingId(null); }}
+                      autoFocus
+                      style={{
+                        flex: 1, background: "rgba(255,255,255,0.08)", border: `1px solid ${C.gold}40`,
+                        borderRadius: 4, padding: "0.3rem 0.5rem", color: C.warmWhite,
+                        fontFamily: F, fontSize: "0.85rem", outline: "none",
+                      }}
+                    />
+                  ) : (
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: F, fontSize: "0.85rem", fontWeight: 600, color: C.warmWhite }}>{v.name}</div>
+                      <div style={{ fontFamily: F, fontSize: "0.65rem", color: "#777", marginTop: "0.15rem" }}>
+                        {new Date(v.createdAt).toLocaleString("de-DE")} · {v.createdBy === "customer" ? "Kunde" : "Ersteller"}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: "0.25rem", flexShrink: 0 }}>
+                    <button onClick={() => handleShare(v.id)} title="Link kopieren" style={{
+                      background: copiedId === v.id ? `${C.greenLight}20` : "rgba(255,255,255,0.06)",
+                      border: `1px solid ${copiedId === v.id ? `${C.greenLight}30` : "rgba(255,255,255,0.1)"}`,
+                      borderRadius: 6, padding: "0.3rem", cursor: "pointer",
+                    }}>
+                      <Icon name={copiedId === v.id ? "check" : "copy"} size={12} color={copiedId === v.id ? C.greenLight : "#888"} />
+                    </button>
+                    <button onClick={() => { setEditingId(v.id); setEditName(v.name); }} title="Umbenennen" style={{
+                      background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 6, padding: "0.3rem", cursor: "pointer",
+                    }}>
+                      <Icon name="settings" size={12} color="#888" />
+                    </button>
+                    <button onClick={() => handleRestore(v.id)} title="Wiederherstellen" style={{
+                      background: `${C.gold}10`, border: `1px solid ${C.gold}20`,
+                      borderRadius: 6, padding: "0.3rem", cursor: "pointer",
+                    }}>
+                      <Icon name="arrowLeft" size={12} color={C.gold} />
+                    </button>
+                    <button onClick={() => handleDelete(v.id)} title="Löschen" style={{
+                      background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.2)",
+                      borderRadius: 6, padding: "0.3rem", cursor: "pointer",
+                    }}>
+                      <Icon name="trash" size={12} color="#E74C3C" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Share URL display */}
+        {shareUrl && (
+          <div style={{
+            padding: "0.75rem 1.5rem", borderTop: "1px solid rgba(255,255,255,0.05)",
+            background: "rgba(255,255,255,0.02)",
+          }}>
+            <div style={{ fontFamily: F, fontSize: "0.6rem", letterSpacing: "1px", textTransform: "uppercase", color: C.softGray, marginBottom: "0.3rem" }}>
+              Share-Link (in Zwischenablage kopiert)
+            </div>
+            <div style={{
+              fontFamily: "monospace", fontSize: "0.65rem", color: "#888",
+              background: "rgba(0,0,0,0.2)", borderRadius: 4, padding: "0.4rem 0.5rem",
+              wordBreak: "break-all", maxHeight: 60, overflowY: "auto",
+            }}>
+              {shareUrl}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Presentation Renderer ── */
 export default function PresentationRenderer() {
   const { id } = useParams();
@@ -612,6 +809,7 @@ export default function PresentationRenderer() {
   const [showIntro, setShowIntro] = useState(true);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const contentRef = useRef(null);
 
   // Live calculation — recalculates on every config change
@@ -789,6 +987,12 @@ export default function PresentationRenderer() {
               color: analysisOpen ? C.gold : C.softGray,
             }}>
               <Icon name="chart" size={12} color={analysisOpen ? C.gold : C.softGray} /> Analyse & Kalkulation
+            </button>
+            <button onClick={() => setVersionsOpen(true)} style={{
+              ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: C.softGray,
+            }}>
+              <Icon name="copy" size={12} color={C.softGray} /> Versionen{project.versions?.length ? ` (${project.versions.length})` : ""}
             </button>
             <button onClick={() => setPdfOpen(true)} style={{
               ...S.pillBtn, padding: "0.35rem 1rem", fontSize: "0.82rem", fontWeight: 600,
@@ -1132,6 +1336,15 @@ export default function PresentationRenderer() {
       <Suspense fallback={null}>
         {pdfOpen && <PdfExport project={project} onClose={() => setPdfOpen(false)} />}
       </Suspense>
+
+      {/* Version Manager */}
+      {versionsOpen && (
+        <VersionManager
+          project={project}
+          onClose={() => setVersionsOpen(false)}
+          onRestore={(restored) => { setProject(restored); setVersionsOpen(false); }}
+        />
+      )}
     </div>
   );
 }

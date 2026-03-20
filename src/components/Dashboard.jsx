@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { listProjects, deleteProject, duplicateProject, seedDemoProjects } from "../store";
+import { listProjects, deleteProject, duplicateProject, seedDemoProjects, encodeSharePayload } from "../store";
 import { useState, useEffect } from "react";
 import Icon from "./Icons";
 
@@ -28,6 +28,17 @@ export default function Dashboard() {
     e.stopPropagation();
     duplicateProject(id);
     refresh();
+  };
+
+  const [copiedId, setCopiedId] = useState(null);
+  const handleShare = async (e, project) => {
+    e.stopPropagation();
+    const url = await encodeSharePayload(project);
+    if (url) {
+      navigator.clipboard.writeText(url);
+      setCopiedId(project.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   if (projects.length === 0) {
@@ -69,12 +80,16 @@ export default function Dashboard() {
                   {p.company?.city && <span>{p.company.city} · </span>}
                   {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
                   {p.generated && <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>● Generiert</span>}
+                  {p.versions?.length > 0 && <span style={{ color: "var(--cyan)", marginLeft: "0.5rem" }}>{p.versions.length} V.</span>}
                   {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.25rem" }}>
                 <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/edit/${p.id}`); }} title="Einstellungen">
                   <Icon name="settings" size={12} />
+                </button>
+                <button className={`btn ${copiedId === p.id ? "btn-primary" : "btn-secondary"} btn-sm`} onClick={(e) => handleShare(e, p)} title={copiedId === p.id ? "Link kopiert!" : "Teilen"}>
+                  <Icon name={copiedId === p.id ? "check" : "eye"} size={12} />
                 </button>
                 <button className="btn btn-secondary btn-sm" onClick={(e) => handleDuplicate(e, p.id)} title="Duplizieren">
                   <Icon name="copy" size={12} />

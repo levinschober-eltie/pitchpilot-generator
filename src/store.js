@@ -139,6 +139,184 @@ export function seedDemoProjects() {
   });
 }
 
+/* ── Version Management ── */
+
+export function createVersion(projectId, name, createdBy = "owner") {
+  const project = getProject(projectId);
+  if (!project) return null;
+  if (!project.versions) project.versions = [];
+
+  const version = {
+    id: "v_" + generateId(),
+    name: name || `Version ${project.versions.length + 1}`,
+    createdAt: Date.now(),
+    createdBy,
+    snapshot: {
+      company: { ...project.company },
+      energy: { ...project.energy },
+      phases: project.phases.map(p => ({ ...p })),
+      phaseConfig: JSON.parse(JSON.stringify(project.phaseConfig)),
+      finance: { ...project.finance },
+      consultant: project.consultant ? { ...project.consultant } : null,
+      generated: project.generated ? JSON.parse(JSON.stringify(project.generated)) : null,
+    },
+  };
+
+  project.versions.push(version);
+  saveProject(project);
+  return version;
+}
+
+export function renameVersion(projectId, versionId, newName) {
+  const project = getProject(projectId);
+  if (!project?.versions) return;
+  const v = project.versions.find(v => v.id === versionId);
+  if (v) { v.name = newName; saveProject(project); }
+}
+
+export function deleteVersion(projectId, versionId) {
+  const project = getProject(projectId);
+  if (!project?.versions) return;
+  project.versions = project.versions.filter(v => v.id !== versionId);
+  saveProject(project);
+}
+
+export function restoreVersion(projectId, versionId) {
+  const project = getProject(projectId);
+  if (!project?.versions) return;
+  const v = project.versions.find(v => v.id === versionId);
+  if (!v) return;
+  Object.assign(project, {
+    company: v.snapshot.company,
+    energy: v.snapshot.energy,
+    phases: v.snapshot.phases,
+    phaseConfig: v.snapshot.phaseConfig,
+    finance: v.snapshot.finance,
+    consultant: v.snapshot.consultant,
+    generated: v.snapshot.generated,
+  });
+  saveProject(project);
+  return project;
+}
+
+/* ── Share Link Encoding (lz-string compressed URL) ── */
+
+const SHORT_KEYS = {
+  stromverbrauch: "s", gasverbrauch: "g", strompreis: "sp", gaspreis: "gp",
+  peakLoad: "pl", existingPV: "epv", latitude: "lat", longitude: "lon",
+  pvDach: "d", pvFassade: "f", pvCarport: "c", pvFreiflaeche: "fr",
+  kapazitaet: "k", wpLeistung: "wp", pufferspeicher: "ps",
+  anzahlPKW: "pk", anzahlLKW: "lk", kmPKW: "kp", kmLKW: "kl", dieselpreis: "dp",
+  ekAnteil: "ek", kreditZins: "z", kreditLaufzeit: "l", tilgungsfrei: "tf",
+};
+
+const LONG_KEYS = Object.fromEntries(Object.entries(SHORT_KEYS).map(([k, v]) => [v, k]));
+
+function shortenObj(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(shortenObj);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[SHORT_KEYS[k] || k] = typeof v === "object" ? shortenObj(v) : v;
+  }
+  return out;
+}
+
+function expandObj(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(expandObj);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[LONG_KEYS[k] || k] = typeof v === "object" ? expandObj(v) : v;
+  }
+  return out;
+}
+
+export async function encodeSharePayload(project, versionId) {
+  const { compressToEncodedURIComponent } = await import("lz-string");
+  const src = versionId
+    ? project.versions?.find(v => v.id === versionId)?.snapshot
+    : project;
+  if (!src) return null;
+
+  const payload = {
+    v: 1,
+    pid: project.id,
+    n: src.company?.name || "",
+    c: src.company?.city || "",
+    ind: src.company?.industry || "",
+    e: shortenObj(src.energy),
+    p: (src.phases || []).map(p => p.enabled ? 1 : 0),
+    pc: shortenObj(src.phaseConfig),
+    f: shortenObj(src.finance),
+    cn: src.consultant,
+    vid: versionId || null,
+  };
+
+  const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
+  const base = window.location.href.split("#")[0];
+  return `${base}#/shared?d=${compressed}`;
+}
+
+export async function decodeSharePayload(encoded) {
+  const { decompressFromEncodedURIComponent } = await import("lz-string");
+  const json = decompressFromEncodedURIComponent(encoded);
+  if (!json) return null;
+  const payload = JSON.parse(json);
+  if (payload.v !== 1) return null;
+
+  const phases = [
+    { key: "analyse", enabled: !!payload.p?.[0], label: "Analyse & Bewertung" },
+    { key: "pv", enabled: !!payload.p?.[1], label: "PV-Ausbau" },
+    { key: "speicher", enabled: !!payload.p?.[2], label: "Speicher & Steuerung" },
+    { key: "waerme", enabled: !!payload.p?.[3], label: "Wärmekonzept" },
+    { key: "ladeinfra", enabled: !!payload.p?.[4], label: "Ladeinfrastruktur" },
+    { key: "bess", enabled: !!payload.p?.[5], label: "Graustrom-BESS" },
+  ];
+
+  return {
+    id: "shared_" + generateId(),
+    sourceProjectId: payload.pid,
+    sourceVersionId: payload.vid,
+    company: { name: payload.n, city: payload.c, industry: payload.ind, address: "", employeeCount: 500, description: "", logoUrl: "" },
+    energy: expandObj(payload.e),
+    phases,
+    phaseConfig: expandObj(payload.pc),
+    finance: expandObj(payload.f),
+    consultant: payload.cn,
+    generated: null,
+    market: {},
+  };
+}
+
+/** Save a customer calculation as a version on the source project (if it exists locally) */
+export function saveCustomerVersion(sourceProjectId, modifiedProject, calcNum) {
+  const project = getProject(sourceProjectId);
+  if (!project) return null;
+  if (!project.versions) project.versions = [];
+
+  const name = `${modifiedProject.company?.name || "Projekt"} Kundenkalkulation ${calcNum}`;
+  const version = {
+    id: "v_" + generateId(),
+    name,
+    createdAt: Date.now(),
+    createdBy: "customer",
+    snapshot: {
+      company: { ...modifiedProject.company },
+      energy: { ...modifiedProject.energy },
+      phases: modifiedProject.phases.map(p => ({ ...p })),
+      phaseConfig: JSON.parse(JSON.stringify(modifiedProject.phaseConfig)),
+      finance: { ...modifiedProject.finance },
+      consultant: modifiedProject.consultant,
+      generated: modifiedProject.generated ? JSON.parse(JSON.stringify(modifiedProject.generated)) : null,
+    },
+  };
+
+  project.versions.push(version);
+  saveProject(project);
+  return version;
+}
+
 /** API key management — sessionStorage only */
 export function getApiKey() {
   return sessionStorage.getItem("pitchpilot_anthropic_key") || "";
