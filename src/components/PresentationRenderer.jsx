@@ -848,8 +848,14 @@ export default function PresentationRenderer() {
 
   // Keyboard navigation
   useEffect(() => {
-    if (showIntro || analysisOpen) return;
     const handle = (e) => {
+      // Escape closes overlays
+      if (e.key === "Escape") {
+        if (versionsOpen) { setVersionsOpen(false); return; }
+        if (analysisOpen) { setAnalysisOpen(false); return; }
+        if (pdfOpen) { setPdfOpen(false); return; }
+      }
+      if (showIntro || analysisOpen || versionsOpen) return;
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
         setActive(prev => Math.min(prev + 1, (project?.generated?.phases?.length || 0)));
@@ -864,7 +870,7 @@ export default function PresentationRenderer() {
     };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);
-  }, [showIntro, analysisOpen, project?.generated?.phases?.length]);
+  }, [showIntro, analysisOpen, versionsOpen, pdfOpen, project?.generated?.phases?.length]);
 
   if (!project?.generated) {
     return (

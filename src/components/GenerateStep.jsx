@@ -133,7 +133,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
         <div className="gen-progress">
           <div className="spinner" />
           <div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
-            Claude generiert den Pitch...
+            {(mode === "ai" || (mode === "auto" && apiReady)) ? "Claude AI generiert den Pitch..." : "Template wird generiert..."}
           </div>
           <button className="btn btn-danger btn-sm" onClick={handleCancel}>Abbrechen</button>
           {streamText && (

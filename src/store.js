@@ -159,6 +159,7 @@ export function createVersion(projectId, name, createdBy = "owner") {
       finance: { ...project.finance },
       consultant: project.consultant ? { ...project.consultant } : null,
       generated: project.generated ? JSON.parse(JSON.stringify(project.generated)) : null,
+      market: project.market ? JSON.parse(JSON.stringify(project.market)) : {},
     },
   };
 
@@ -194,6 +195,7 @@ export function restoreVersion(projectId, versionId) {
     finance: v.snapshot.finance,
     consultant: v.snapshot.consultant,
     generated: v.snapshot.generated,
+    market: v.snapshot.market || {},
   });
   saveProject(project);
   return project;
@@ -309,6 +311,7 @@ export function saveCustomerVersion(sourceProjectId, modifiedProject, calcNum) {
       finance: { ...modifiedProject.finance },
       consultant: modifiedProject.consultant,
       generated: modifiedProject.generated ? JSON.parse(JSON.stringify(modifiedProject.generated)) : null,
+      market: modifiedProject.market ? JSON.parse(JSON.stringify(modifiedProject.market)) : {},
     },
   };
 

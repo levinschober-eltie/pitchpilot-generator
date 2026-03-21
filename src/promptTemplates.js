@@ -15,7 +15,7 @@ WICHTIG:
 - Jede Phase braucht: headline, description, highlights (4), results (5-7), investment (Einzelpositionen), funding (2-3), roi, roiValue, independenceLabel
 - finalSummary braucht: headline, heroCards, systemKpis (6), investmentSummary, economicSummary, levers (6), regulatorik (4-6), riskManagement (4-5), pillars
 - Antworte NUR mit validem JSON — kein Markdown, keine Erklärungen
-- Icons müssen aus: sun, battery, fire, car, factory, leaf, money, shield, chart, bolt, globe, target, clock, tools, building, grid, search, plug, satellite, microscope, document, gear, chartUp, chartDown, trophy, parking, thermometer, bank`;
+- Icons müssen aus: sun, battery, fire, car, factory, leaf, money, shield, chart, bolt, globe, target, clock, tools, building, grid, search, plug, satellite, microscope, document, gear, chartUp, chartDown, trophy, parking, thermometer, bank, sparkle, eye, cloudSun, pin`;
 
 /**
  * Build the user prompt with all project data.
@@ -157,7 +157,7 @@ export async function generatePitchContent(project, onChunk, signal) {
   try {
     return JSON.parse(cleaned);
   } catch (e) {
-    throw new Error("Claude hat kein gültiges JSON zurückgegeben. Bitte erneut versuchen.\n\nAntwort: " + cleaned.slice(0, 500));
+    throw new Error("Claude hat kein gültiges JSON zurückgegeben. Bitte erneut versuchen.");
   }
 }
 

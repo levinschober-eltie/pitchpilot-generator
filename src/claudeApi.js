@@ -20,7 +20,12 @@ export async function callClaude(systemPrompt, userMessage, options = {}) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("Kein API-Key gesetzt. Bitte unter Einstellungen hinterlegen.");
 
-  const { signal, maxTokens = MAX_TOKENS } = options;
+  const { signal, maxTokens = MAX_TOKENS, timeout = 60000 } = options;
+
+  // Timeout wrapper — abort after timeout ms if no external signal
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  if (signal) signal.addEventListener("abort", () => controller.abort());
 
   const response = await fetch(API_URL, {
     method: "POST",
@@ -36,8 +41,8 @@ export async function callClaude(systemPrompt, userMessage, options = {}) {
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
     }),
-    signal,
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -62,7 +67,11 @@ export async function streamClaude(systemPrompt, userMessage, onChunk, options =
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("Kein API-Key gesetzt. Bitte unter Einstellungen hinterlegen.");
 
-  const { signal, maxTokens = MAX_TOKENS } = options;
+  const { signal, maxTokens = MAX_TOKENS, timeout = 120000 } = options;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  if (signal) signal.addEventListener("abort", () => controller.abort());
 
   const response = await fetch(API_URL, {
     method: "POST",
@@ -79,8 +88,8 @@ export async function streamClaude(systemPrompt, userMessage, onChunk, options =
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
     }),
-    signal,
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -116,6 +125,20 @@ export async function streamClaude(systemPrompt, userMessage, onChunk, options =
       } catch {
         /* skip non-JSON lines */
       }
+    }
+  }
+
+  // Process any remaining buffer after stream ends
+  if (buffer.trim().startsWith("data: ")) {
+    const payload = buffer.trim().slice(6).trim();
+    if (payload !== "[DONE]") {
+      try {
+        const evt = JSON.parse(payload);
+        if (evt.type === "content_block_delta" && evt.delta?.text) {
+          fullText += evt.delta.text;
+          onChunk(evt.delta.text);
+        }
+      } catch { /* skip */ }
     }
   }
 

@@ -160,9 +160,11 @@ export function calculateAll(project) {
   const tilgungsJahre = Math.max(1, kreditLaufzeit - tilgungsfrei);
   const zinsTilgungsfrei = Math.round(kreditBetrag * zinsRate);
 
-  const annuitaetRaw = tilgungsJahre > 0 && zinsRate > 0
-    ? kreditBetrag * (zinsRate * Math.pow(1 + zinsRate, tilgungsJahre)) / (Math.pow(1 + zinsRate, tilgungsJahre) - 1)
-    : tilgungsJahre > 0 ? kreditBetrag / tilgungsJahre : 0;
+  const annuitaetRaw = tilgungsJahre > 0
+    ? (zinsRate > 0
+      ? kreditBetrag * (zinsRate * Math.pow(1 + zinsRate, tilgungsJahre)) / (Math.pow(1 + zinsRate, tilgungsJahre) - 1)
+      : kreditBetrag / tilgungsJahre)
+    : 0;
   const annuitaet = isFinite(annuitaetRaw) ? Math.round(annuitaetRaw) : 0;
 
   const totalSchuldendienst = zinsTilgungsfrei * tilgungsfrei + annuitaet * tilgungsJahre;

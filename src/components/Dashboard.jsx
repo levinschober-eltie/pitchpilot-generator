@@ -79,7 +79,11 @@ export default function Dashboard() {
                 <div className="project-meta">
                   {p.company?.city && <span>{p.company.city} · </span>}
                   {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
-                  {p.generated && <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>● Generiert</span>}
+                  {p.generated && (
+                    p.generatedAt && p.updatedAt > p.generatedAt + 5000
+                      ? <span style={{ color: "var(--yellow)", marginLeft: "0.5rem" }}>● Veraltet</span>
+                      : <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>● Generiert</span>
+                  )}
                   {p.versions?.length > 0 && <span style={{ color: "var(--cyan)", marginLeft: "0.5rem" }}>{p.versions.length} V.</span>}
                   {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
                 </div>

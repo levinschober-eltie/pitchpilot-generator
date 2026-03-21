@@ -1,11 +1,20 @@
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Dashboard from "./components/Dashboard";
 
-const Wizard = lazy(() => import("./components/Wizard"));
-const Presentation = lazy(() => import("./components/PresentationRenderer"));
-const SharedPresentation = lazy(() => import("./components/SharedPresentation"));
-const Settings = lazy(() => import("./components/Settings"));
+/** Lazy import with automatic retry on chunk load failure (stale deployments) */
+function lazyRetry(fn) {
+  return lazy(() => fn().catch(() => {
+    window.location.reload();
+    return new Promise(() => {}); // never resolves — reload handles it
+  }));
+}
+
+const Wizard = lazyRetry(() => import("./components/Wizard"));
+const Presentation = lazyRetry(() => import("./components/PresentationRenderer"));
+const SharedPresentation = lazyRetry(() => import("./components/SharedPresentation"));
+const Settings = lazyRetry(() => import("./components/Settings"));
 
 function Loading() {
   return (
@@ -23,37 +32,42 @@ export default function App() {
 
   if (isPresentation || isShared) {
     return (
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/present/:id" element={<Presentation />} />
-          <Route path="/shared" element={<SharedPresentation />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/present/:id" element={<Presentation />} />
+            <Route path="/shared" element={<SharedPresentation />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <h1 onClick={() => navigate("/")}>
-          PITCH<span>PILOT</span>
-        </h1>
-        <nav>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate("/")}>Projekte</button>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate("/new")}>+ Neuer Pitch</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate("/settings")}>Einstellungen</button>
-        </nav>
-      </header>
-      <main className="app-main">
-        <Suspense fallback={<Loading />}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/new" element={<Wizard />} />
-            <Route path="/edit/:id" element={<Wizard />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </Suspense>
-      </main>
-    </div>
+    <ErrorBoundary>
+      <div className="app-shell">
+        <header className="app-header">
+          <h1 onClick={() => navigate("/")}>
+            PITCH<span>PILOT</span>
+          </h1>
+          <nav>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate("/")}>Projekte</button>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate("/new")}>+ Neuer Pitch</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate("/settings")}>Einstellungen</button>
+          </nav>
+        </header>
+        <main className="app-main">
+          <Suspense fallback={<Loading />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/new" element={<Wizard />} />
+              <Route path="/edit/:id" element={<Wizard />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Dashboard />} />
+            </Routes>
+          </Suspense>
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 }

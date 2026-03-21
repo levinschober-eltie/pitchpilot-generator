@@ -31,11 +31,15 @@ export default function Wizard() {
   const [step, setStep] = useState(project.step || 0);
   const [pdfOpen, setPdfOpen] = useState(false);
 
+  // Debounced save — avoids excessive localStorage writes during slider drags
   useEffect(() => {
-    const saved = saveProject({ ...project, step });
-    if (!id && saved.id) {
-      window.history.replaceState(null, "", `#/edit/${saved.id}`);
-    }
+    const timer = setTimeout(() => {
+      const saved = saveProject({ ...project, step });
+      if (!id && saved.id) {
+        window.history.replaceState(null, "", `#/edit/${saved.id}`);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [project, step]);
 
   const update = (section, data) => {
@@ -48,8 +52,8 @@ export default function Wizard() {
 
   const canNext = () => {
     if (step === 0) return project.company?.name?.trim().length > 0;
-    if (step === 1) return project.energy?.stromverbrauch > 0;
-    if (step === 2) return project.phases?.some((p) => p.enabled);
+    if (step === 1) return (project.energy?.stromverbrauch || 0) + (project.energy?.gasverbrauch || 0) > 0;
+    if (step === 2) return project.phases?.some((p) => p.enabled && p.key !== "bess");
     return true;
   };
 
@@ -114,7 +118,7 @@ export default function Wizard() {
           project={project}
           onGenerated={(content) => {
             updateFull("generated", content);
-            saveProject({ ...project, generated: content });
+            saveProject({ ...project, generated: content, generatedAt: Date.now() });
           }}
           onNavigate={() => navigate(`/present/${project.id}`)}
         />

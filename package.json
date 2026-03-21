@@ -10,7 +10,6 @@
     "deploy": "vite build && gh-pages -d dist"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "lz-string": "^1.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { decodeSharePayload, saveCustomerVersion, getProject } from "../store";
 import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
 import { C } from "../colors";
@@ -82,7 +82,6 @@ function setVal(obj, path, value) {
 
 export default function SharedPresentation() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const encoded = searchParams.get("d");
 
   const [project, setProject] = useState(null);
@@ -104,9 +103,16 @@ export default function SharedPresentation() {
         if (!decoded) {
           setError("Link konnte nicht dekodiert werden.");
         } else {
-          // Try to load generated content from source project
           const sourceProject = getProject(decoded.sourceProjectId);
-          if (sourceProject?.generated) {
+          // Prefer version-specific snapshot if a versionId was encoded
+          if (decoded.sourceVersionId && sourceProject?.versions) {
+            const ver = sourceProject.versions.find(v => v.id === decoded.sourceVersionId);
+            if (ver?.snapshot?.generated) {
+              decoded.generated = ver.snapshot.generated;
+            }
+          }
+          // Fallback: use current project generated content
+          if (!decoded.generated && sourceProject?.generated) {
             decoded.generated = sourceProject.generated;
           }
           setProject(decoded);
