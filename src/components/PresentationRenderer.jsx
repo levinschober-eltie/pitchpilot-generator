@@ -601,6 +601,82 @@ function FinalSummary({ summary, calc, heroCards, color, project }) {
   );
 }
 
+/* ── Intro Screen with Cascading Entrance (Eckart-Style) ── */
+function IntroScreen({ gen, company, phases, calc, onStart }) {
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => setVis(true), reduced ? 0 : 100);
+    return () => clearTimeout(t);
+  }, []);
+
+  const cascade = (delay) => ({
+    opacity: vis ? 1 : 0,
+    transform: vis ? "translateY(0)" : "translateY(15px)",
+    transition: `all 0.8s ease ${delay}s`,
+  });
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      background: `radial-gradient(ellipse at center, ${C.navy} 0%, ${C.navyDeep} 100%)`,
+      textAlign: "center", padding: "2rem",
+    }}>
+      <div style={{ ...S.labelTiny, color: C.gold, marginBottom: "1.5rem", letterSpacing: "5px", ...cascade(0.2) }}>PITCHPILOT</div>
+      <h1 style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)", fontWeight: 400, color: C.warmWhite, marginBottom: "0.5rem", maxWidth: 700, ...cascade(0.5) }}>
+        {gen.intro?.headline || `Erstellt für ${company.name}`}
+      </h1>
+      <div style={{ fontSize: "1.1rem", color: C.softGray, marginBottom: "0.5rem", ...cascade(0.8) }}>
+        {gen.intro?.subtitle || "Phasenkonzept zur Energietransformation"}
+      </div>
+      <div style={{ fontStyle: "italic", color: C.gold, fontSize: "0.9rem", marginBottom: "2.5rem", ...cascade(1.0) }}>
+        {gen.intro?.tagline || ""}
+      </div>
+
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "2.5rem", ...cascade(1.3) }}>
+        {phases.map((p, i) => (
+          <span key={i} style={{
+            padding: "0.3rem 0.75rem", borderRadius: "2rem",
+            border: `1px solid ${getPhaseColor(p)}50`, background: `${getPhaseColor(p)}10`,
+            color: getPhaseColor(p), fontFamily: F, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "1px",
+          }}>
+            {p.num} — {p.title}
+          </span>
+        ))}
+      </div>
+
+      <button
+        onClick={onStart}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 6px 32px ${C.gold}60`; e.currentTarget.style.transform = "translateY(-2px)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 4px 25px ${C.gold}40`; e.currentTarget.style.transform = "translateY(0)"; }}
+        style={{
+          ...S.pillBtn, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight || C.gold})`,
+          color: C.navyDeep, padding: "0.75rem 2.5rem", fontSize: "0.8rem", border: "none",
+          boxShadow: `0 4px 25px ${C.gold}40`, ...cascade(1.5),
+        }}
+      >
+        Konzept entdecken <Icon name="arrowRight" size={16} />
+      </button>
+
+      {calc && (
+        <div style={{ marginTop: "3rem", display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center", ...cascade(1.8) }}>
+          {[
+            { label: "Investition", value: fmtEuro(calc.investGesamt), color: C.gold },
+            { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight },
+            { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: C.greenLight },
+            { label: "Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.gold },
+          ].map(item => (
+            <div key={item.label} style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: F, fontSize: "1.4rem", fontWeight: 700, color: item.color }}>{item.value}</div>
+              <div style={{ fontFamily: F, fontSize: "0.65rem", letterSpacing: "1px", textTransform: "uppercase", color: "#999" }}>{item.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Version Manager Overlay ── */
 function VersionManager({ project, onClose, onRestore }) {
   const [versions, setVersions] = useState(project.versions || []);
@@ -810,7 +886,10 @@ export default function PresentationRenderer() {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
+  const [toast, setToast] = useState(null);
   const contentRef = useRef(null);
+  const originalConfigRef = useRef(null);
 
   // Live calculation — recalculates on every config change
   const calc = useMemo(() => project ? calculateAll(project) : null, [project]);
@@ -824,6 +903,46 @@ export default function PresentationRenderer() {
     [project?.phases]
   );
 
+  // Toast helper
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }, []);
+
+  // Store original config when analysis opens (for reset)
+  const openAnalysis = useCallback(() => {
+    setAnalysisOpen(o => {
+      if (!o && !originalConfigRef.current) {
+        originalConfigRef.current = JSON.parse(JSON.stringify({
+          energy: project.energy, phaseConfig: project.phaseConfig, finance: project.finance,
+        }));
+      }
+      return !o;
+    });
+  }, [project]);
+
+  // Save config (visual feedback)
+  const handleConfigSave = useCallback(() => {
+    setConfigSaved(true);
+    setAnalysisOpen(false);
+    originalConfigRef.current = null;
+    showToast("Kalkulation gespeichert");
+  }, [showToast]);
+
+  // Reset config to original
+  const handleConfigReset = useCallback(() => {
+    if (!originalConfigRef.current) return;
+    setProject(prev => {
+      const next = { ...prev, ...originalConfigRef.current };
+      saveProject(next);
+      return next;
+    });
+    setConfigSaved(false);
+    originalConfigRef.current = null;
+    setAnalysisOpen(false);
+    showToast("Kalkulation zurückgesetzt");
+  }, [showToast]);
+
   // Update a nested config value and save to localStorage
   const updateConfig = useCallback((path, value) => {
     setProject(prev => {
@@ -831,6 +950,7 @@ export default function PresentationRenderer() {
       saveProject(next);
       return next;
     });
+    setConfigSaved(false);
   }, []);
 
   // Update market results from MarketAnalysis
@@ -841,6 +961,15 @@ export default function PresentationRenderer() {
       return next;
     });
   }, []);
+
+  // Restart content animation on phase change
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    el.style.animation = "none";
+    void el.offsetHeight; // force reflow
+    el.style.animation = "";
+  }, [active]);
 
   const handleSetActive = useCallback((idx) => {
     startTransition(() => setActive(idx));
@@ -856,6 +985,9 @@ export default function PresentationRenderer() {
         if (pdfOpen) { setPdfOpen(false); return; }
       }
       if (showIntro || analysisOpen || versionsOpen) return;
+      // Don't intercept arrows when user is in a form field
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
         setActive(prev => Math.min(prev + 1, (project?.generated?.phases?.length || 0)));
@@ -896,64 +1028,9 @@ export default function PresentationRenderer() {
   // Slider position percentage for timeline
   const sliderPct = totalSlides > 1 ? (active / (totalSlides - 1)) * 100 : 0;
 
-  /* ── Intro Screen ── */
+  /* ── Intro Screen (Eckart-Style cascading entrance) ── */
   if (showIntro) {
-    return (
-      <div style={{
-        minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        background: `radial-gradient(ellipse at center, ${C.navy} 0%, ${C.navyDeep} 100%)`,
-        textAlign: "center", padding: "2rem",
-      }}>
-        <div style={{ ...S.labelTiny, color: C.gold, marginBottom: "1.5rem", letterSpacing: "5px" }}>PITCHPILOT</div>
-        <h1 style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)", fontWeight: 400, color: C.warmWhite, marginBottom: "0.5rem", maxWidth: 700 }}>
-          {gen.intro?.headline || `Erstellt für ${company.name}`}
-        </h1>
-        <div style={{ fontSize: "1.1rem", color: C.softGray, marginBottom: "0.5rem" }}>
-          {gen.intro?.subtitle || "Phasenkonzept zur Energietransformation"}
-        </div>
-        <div style={{ fontStyle: "italic", color: C.gold, fontSize: "0.9rem", marginBottom: "2.5rem" }}>
-          {gen.intro?.tagline || ""}
-        </div>
-
-        {/* Phase pills */}
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "2.5rem" }}>
-          {phases.map((p, i) => (
-            <span key={i} style={{
-              padding: "0.3rem 0.75rem", borderRadius: "2rem",
-              border: `1px solid ${getPhaseColor(p)}50`, background: `${getPhaseColor(p)}10`,
-              color: getPhaseColor(p), fontFamily: F, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "1px",
-            }}>
-              {p.num} — {p.title}
-            </span>
-          ))}
-        </div>
-
-        <button onClick={() => setShowIntro(false)} style={{
-          ...S.pillBtn, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight || C.gold})`,
-          color: C.navyDeep, padding: "0.75rem 2.5rem", fontSize: "0.8rem", border: "none",
-          boxShadow: `0 4px 25px ${C.gold}40`,
-        }}>
-          Konzept entdecken <Icon name="arrowRight" size={16} />
-        </button>
-
-        {/* Live KPI preview on intro */}
-        {calc && (
-          <div style={{ marginTop: "3rem", display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center" }}>
-            {[
-              { label: "Investition", value: fmtEuro(calc.investGesamt), color: C.gold },
-              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight || C.green },
-              { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: C.greenLight || C.green },
-              { label: "Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.gold },
-            ].map(item => (
-              <div key={item.label} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: F, fontSize: "1.4rem", fontWeight: 700, color: item.color }}>{item.value}</div>
-                <div style={{ fontFamily: F, fontSize: "0.65rem", letterSpacing: "1px", textTransform: "uppercase", color: "#999" }}>{item.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+    return <IntroScreen gen={gen} company={company} phases={phases} calc={calc} onStart={() => setShowIntro(false)} />;
   }
 
   /* ── Main Presentation ── */
@@ -986,14 +1063,22 @@ export default function PresentationRenderer() {
             Phasenkonzept zur Energietransformation
           </h1>
           <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
-            <button onClick={() => setAnalysisOpen(o => !o)} style={{
+            <button onClick={openAnalysis} style={{
               ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
-              background: analysisOpen ? `${C.gold}20` : "rgba(255,255,255,0.06)",
-              border: `1px solid ${analysisOpen ? `${C.gold}40` : "rgba(255,255,255,0.12)"}`,
-              color: analysisOpen ? C.gold : C.softGray,
+              background: configSaved ? `${C.greenLight}25` : analysisOpen ? `${C.gold}20` : "rgba(255,255,255,0.06)",
+              border: `1px solid ${configSaved ? `${C.greenLight}60` : analysisOpen ? `${C.gold}40` : "rgba(255,255,255,0.12)"}`,
+              color: configSaved ? C.greenLight : analysisOpen ? C.gold : C.softGray,
             }}>
-              <Icon name="chart" size={12} color={analysisOpen ? C.gold : C.softGray} /> Analyse & Kalkulation
+              <Icon name={configSaved ? "check" : "chart"} size={12} color={configSaved ? C.greenLight : analysisOpen ? C.gold : C.softGray} /> Analyse & Kalkulation
             </button>
+            {configSaved && (
+              <button onClick={handleConfigReset} style={{
+                ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
+                background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)", color: "#ff8888",
+              }}>
+                <Icon name="reset" size={12} color="#ff8888" /> Zurücksetzen
+              </button>
+            )}
             <button onClick={() => setVersionsOpen(true)} style={{
               ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
               background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: C.softGray,
@@ -1146,7 +1231,7 @@ export default function PresentationRenderer() {
 
         {/* Grid: Content (5fr) + ScoreRing (4fr) */}
         <div className="pitch-grid" style={{ display: "grid", gridTemplateColumns: "5fr 4fr", gap: "1.25rem", alignItems: "start", minWidth: 0 }}>
-          <div ref={contentRef} style={{ minWidth: 0 }}>
+          <div ref={contentRef} style={{ minWidth: 0, animation: "fadeSlideIn 0.5s ease forwards" }}>
             {isFinal ? (
               <FinalSummary summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} project={project} />
             ) : (
@@ -1221,6 +1306,24 @@ export default function PresentationRenderer() {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
+        @keyframes ringPulse {
+          0%, 100% { filter: drop-shadow(0 0 8px rgba(212,168,67,0.15)); }
+          50% { filter: drop-shadow(0 0 16px rgba(212,168,67,0.35)); }
+        }
+        input[type=range] {
+          -webkit-appearance: none; appearance: none;
+          height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+          -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+          background: linear-gradient(135deg, #D4A843, #E8C97A); cursor: pointer;
+          box-shadow: 0 0 8px rgba(212,168,67,0.3); border: 2px solid #1B2A4A;
+        }
+        input[type=range]::-moz-range-thumb {
+          width: 14px; height: 14px; border-radius: 50%;
+          background: linear-gradient(135deg, #D4A843, #E8C97A); cursor: pointer; border: 2px solid #1B2A4A;
+        }
+        button:focus-visible { outline: 2px solid #D4A843; outline-offset: 2px; }
         @media (max-width: 768px) {
           .pitch-grid { grid-template-columns: 1fr !important; }
           .analysis-split { flex-direction: column !important; }
@@ -1247,11 +1350,19 @@ export default function PresentationRenderer() {
               <div style={{ fontFamily: F, fontSize: "1.1rem", fontWeight: 700, color: C.gold, letterSpacing: "0.5px" }}>
                 Analyse & Kalkulation
               </div>
-              <button onClick={() => setAnalysisOpen(false)} aria-label="Panel schließen" style={{
-                background: "none", border: "none", cursor: "pointer", padding: "0.3rem",
-              }}>
-                <Icon name="close" size={14} color="#888" />
-              </button>
+              <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                <button onClick={handleConfigSave} style={{
+                  ...S.pillBtn, padding: "0.3rem 0.8rem",
+                  background: `${C.greenLight}20`, border: `1px solid ${C.greenLight}40`, color: C.greenLight,
+                }}>
+                  <Icon name="check" size={12} color={C.greenLight} /> Speichern
+                </button>
+                <button onClick={() => setAnalysisOpen(false)} aria-label="Panel schließen" style={{
+                  background: "none", border: "none", cursor: "pointer", padding: "0.3rem",
+                }}>
+                  <Icon name="close" size={14} color="#888" />
+                </button>
+              </div>
             </div>
             <div style={{ fontFamily: F, fontSize: "0.68rem", color: C.softGray, marginTop: "0.15rem" }}>
               Kalkulation · Marktanalyse · BESS-Optimierung
@@ -1348,9 +1459,34 @@ export default function PresentationRenderer() {
         <VersionManager
           project={project}
           onClose={() => setVersionsOpen(false)}
-          onRestore={(restored) => { setProject(restored); setVersionsOpen(false); }}
+          onRestore={(restored) => { setProject(restored); setVersionsOpen(false); showToast("Version wiederhergestellt"); }}
         />
       )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div role="status" aria-live="polite" style={{
+          position: "fixed", bottom: "2rem", left: "50%", transform: "translateX(-50%)",
+          background: `linear-gradient(135deg, ${C.greenLight}, ${C.green})`,
+          color: "#fff", padding: "0.6rem 1.4rem", borderRadius: 8,
+          fontFamily: F, fontSize: "0.9rem", fontWeight: 700,
+          display: "flex", alignItems: "center", gap: "0.4rem",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)", zIndex: 9999,
+          animation: "fadeSlideIn 0.3s ease",
+        }}>
+          <Icon name="check" size={16} color="#fff" /> {toast}
+        </div>
+      )}
+
+      {/* Screen reader phase announcement */}
+      <div aria-live="polite" aria-atomic="true" style={{
+        position: "absolute", width: 1, height: 1, overflow: "hidden",
+        clip: "rect(0,0,0,0)", whiteSpace: "nowrap",
+      }}>
+        {isFinal
+          ? "Gesamtergebnis — Wirtschaftlichkeit"
+          : `Phase ${currentPhase?.num}: ${currentPhase?.title}`}
+      </div>
     </div>
   );
 }

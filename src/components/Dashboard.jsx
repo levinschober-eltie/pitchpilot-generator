@@ -33,12 +33,14 @@ export default function Dashboard() {
   const [copiedId, setCopiedId] = useState(null);
   const handleShare = async (e, project) => {
     e.stopPropagation();
-    const url = await encodeSharePayload(project);
-    if (url) {
-      navigator.clipboard.writeText(url);
-      setCopiedId(project.id);
-      setTimeout(() => setCopiedId(null), 2000);
-    }
+    try {
+      const url = await encodeSharePayload(project);
+      if (url) {
+        navigator.clipboard.writeText(url);
+        setCopiedId(project.id);
+        setTimeout(() => setCopiedId(null), 2000);
+      }
+    } catch { /* encoding failed — silent, no crash */ }
   };
 
   if (projects.length === 0) {

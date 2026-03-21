@@ -89,6 +89,7 @@ export default function SharedPresentation() {
   const [error, setError] = useState(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [calcNum, setCalcNum] = useState(1);
 
   // Decode share payload on mount
@@ -139,11 +140,14 @@ export default function SharedPresentation() {
   }, []);
 
   const handleSave = useCallback(() => {
-    if (!project?.sourceProjectId) return;
+    if (!project?.sourceProjectId) { setSaveError(true); return; }
     const result = saveCustomerVersion(project.sourceProjectId, project, calcNum);
     if (result) {
       setSaved(true);
+      setSaveError(false);
       setCalcNum(prev => prev + 1);
+    } else {
+      setSaveError(true);
     }
   }, [project, calcNum]);
 
@@ -229,7 +233,7 @@ export default function SharedPresentation() {
               color: saved ? C.greenLight : C.gold, marginTop: "0.5rem",
             }}>
               <Icon name={saved ? "check" : "download"} size={14} />
-              {saved ? "Kalkulation gespeichert!" : "Kalkulation speichern"}
+              {saved ? "Kalkulation gespeichert!" : saveError ? "Speichern fehlgeschlagen" : "Kalkulation speichern"}
             </button>
           </div>
         )}
@@ -612,7 +616,7 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
               color: saved ? C.greenLight : C.gold,
             }}>
               <Icon name={saved ? "check" : "download"} size={14} />
-              {saved ? "Kalkulation gespeichert!" : "Kalkulation speichern"}
+              {saved ? "Kalkulation gespeichert!" : saveError ? "Speichern fehlgeschlagen" : "Kalkulation speichern"}
             </button>
           </div>
         </div>
