@@ -119,6 +119,14 @@ export function createBlankProject() {
     // Market analysis results (filled when Marktanalyse step is visited)
     market: {},
 
+    // Style / Theme
+    theme: {
+      preset: "eckart",
+      customColors: null,
+      font: null,
+      websiteUrl: null,
+    },
+
     // Generated content (filled by Claude API or manually)
     generated: null,
 
@@ -160,6 +168,7 @@ export function createVersion(projectId, name, createdBy = "owner") {
       consultant: project.consultant ? { ...project.consultant } : null,
       generated: project.generated ? JSON.parse(JSON.stringify(project.generated)) : null,
       market: project.market ? JSON.parse(JSON.stringify(project.market)) : {},
+      theme: project.theme ? { ...project.theme } : { preset: "eckart" },
     },
   };
 
@@ -196,6 +205,7 @@ export function restoreVersion(projectId, versionId) {
     consultant: v.snapshot.consultant,
     generated: v.snapshot.generated,
     market: v.snapshot.market || {},
+    theme: v.snapshot.theme || { preset: "eckart" },
   });
   saveProject(project);
   return project;
@@ -253,6 +263,8 @@ export async function encodeSharePayload(project, versionId) {
     f: shortenObj(src.finance),
     cn: src.consultant,
     vid: versionId || null,
+    th: src.theme?.preset || "eckart",
+    thc: src.theme?.customColors || null,
   };
 
   const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
@@ -288,6 +300,7 @@ export async function decodeSharePayload(encoded) {
     consultant: payload.cn,
     generated: null,
     market: {},
+    theme: payload.th ? { preset: payload.th, customColors: payload.thc || null } : { preset: "eckart" },
   };
 }
 
@@ -312,12 +325,133 @@ export function saveCustomerVersion(sourceProjectId, modifiedProject, calcNum) {
       consultant: modifiedProject.consultant,
       generated: modifiedProject.generated ? JSON.parse(JSON.stringify(modifiedProject.generated)) : null,
       market: modifiedProject.market ? JSON.parse(JSON.stringify(modifiedProject.market)) : {},
+      theme: modifiedProject.theme ? { ...modifiedProject.theme } : { preset: "eckart" },
     },
   };
 
   project.versions.push(version);
   saveProject(project);
   return version;
+}
+
+/* ── Named Share Links (server-side via Vercel KV) ── */
+
+const API_BASE = import.meta.env.DEV ? "" : "";
+
+/**
+ * Create a named share link via the API.
+ * Falls back to the old client-side lz-string link if the API is unavailable.
+ */
+export async function createNamedShareLink(project, versionId) {
+  const { compressToEncodedURIComponent } = await import("lz-string");
+  const src = versionId
+    ? project.versions?.find(v => v.id === versionId)?.snapshot
+    : project;
+  if (!src) return null;
+
+  const payload = {
+    v: 1,
+    pid: project.id,
+    n: src.company?.name || "",
+    c: src.company?.city || "",
+    ind: src.company?.industry || "",
+    e: shortenObj(src.energy),
+    p: (src.phases || []).map(p => p.enabled ? 1 : 0),
+    pc: shortenObj(src.phaseConfig),
+    f: shortenObj(src.finance),
+    cn: src.consultant,
+    vid: versionId || null,
+    th: src.theme?.preset || "eckart",
+    thc: src.theme?.customColors || null,
+  };
+
+  const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payload: compressed,
+        companyName: src.company?.name || "pitch",
+        projectId: project.id,
+      }),
+    });
+
+    if (resp.ok) {
+      const { slug, url } = await resp.json();
+      const base = window.location.origin;
+      return { type: "named", slug, url: `${base}/p/${slug}`, compressed };
+    }
+  } catch {
+    // API unavailable — fall through to client-side link
+  }
+
+  // Fallback: client-side lz-string link
+  const base = window.location.href.split("#")[0];
+  return { type: "hash", slug: null, url: `${base}#/shared?d=${compressed}`, compressed };
+}
+
+/**
+ * Load a shared pitch by slug from the API.
+ * Returns the decoded project data or null.
+ */
+export async function loadNamedShare(slug) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/p/${encodeURIComponent(slug)}`);
+    if (!resp.ok) return null;
+    const { payload } = await resp.json();
+    if (!payload) return null;
+
+    const { decompressFromEncodedURIComponent } = await import("lz-string");
+    const json = decompressFromEncodedURIComponent(payload);
+    if (!json) return null;
+
+    const data = JSON.parse(json);
+    return decodePayloadObj(data);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch analytics for a project's share links.
+ */
+export async function fetchShareStats(projectId) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/stats/${encodeURIComponent(projectId)}`);
+    if (!resp.ok) return { shares: [] };
+    return resp.json();
+  } catch {
+    return { shares: [] };
+  }
+}
+
+/** Decode the inner payload object (shared between hash and named links) */
+function decodePayloadObj(payload) {
+  if (payload.v !== 1) return null;
+  const phases = [
+    { key: "analyse", enabled: !!payload.p?.[0], label: "Analyse & Bewertung" },
+    { key: "pv", enabled: !!payload.p?.[1], label: "PV-Ausbau" },
+    { key: "speicher", enabled: !!payload.p?.[2], label: "Speicher & Steuerung" },
+    { key: "waerme", enabled: !!payload.p?.[3], label: "Wärmekonzept" },
+    { key: "ladeinfra", enabled: !!payload.p?.[4], label: "Ladeinfrastruktur" },
+    { key: "bess", enabled: !!payload.p?.[5], label: "Graustrom-BESS" },
+  ];
+  return {
+    id: "shared_" + generateId(),
+    sourceProjectId: payload.pid,
+    sourceVersionId: payload.vid,
+    company: { name: payload.n, city: payload.c, industry: payload.ind, address: "", employeeCount: 500, description: "", logoUrl: "" },
+    energy: expandObj(payload.e),
+    phases,
+    phaseConfig: expandObj(payload.pc),
+    finance: expandObj(payload.f),
+    consultant: payload.cn,
+    generated: null,
+    market: {},
+    theme: payload.th ? { preset: payload.th, customColors: payload.thc || null } : { preset: "eckart" },
+  };
 }
 
 /** API key management — sessionStorage only */

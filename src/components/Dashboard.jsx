@@ -1,17 +1,19 @@
 import { useNavigate } from "react-router-dom";
-import { listProjects, deleteProject, duplicateProject, seedDemoProjects, encodeSharePayload } from "../store";
+import { listProjects, deleteProject, duplicateProject, seedDemoProjects, createNamedShareLink, fetchShareStats } from "../store";
 import { useState, useEffect } from "react";
 import Icon from "./Icons";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState(() => listProjects());
+  const [statsOpen, setStatsOpen] = useState(null); // projectId or null
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const refresh = () => setProjects(listProjects());
 
   useEffect(() => {
     seedDemoProjects();
-    // Re-read after async seed completes
     const t = setTimeout(refresh, 100);
     return () => clearTimeout(t);
   }, []);
@@ -31,16 +33,37 @@ export default function Dashboard() {
   };
 
   const [copiedId, setCopiedId] = useState(null);
+  const [shareLoading, setShareLoading] = useState(null);
+
   const handleShare = async (e, project) => {
     e.stopPropagation();
+    setShareLoading(project.id);
     try {
-      const url = await encodeSharePayload(project);
-      if (url) {
-        navigator.clipboard.writeText(url);
+      const result = await createNamedShareLink(project);
+      if (result) {
+        await navigator.clipboard.writeText(result.url);
         setCopiedId(project.id);
-        setTimeout(() => setCopiedId(null), 2000);
+        setTimeout(() => setCopiedId(null), 3000);
       }
-    } catch { /* encoding failed — silent, no crash */ }
+    } catch { /* silent */ }
+    setShareLoading(null);
+  };
+
+  const handleOpenStats = async (e, projectId) => {
+    e.stopPropagation();
+    if (statsOpen === projectId) {
+      setStatsOpen(null);
+      return;
+    }
+    setStatsOpen(projectId);
+    setStatsLoading(true);
+    try {
+      const data = await fetchShareStats(projectId);
+      setStats(data);
+    } catch {
+      setStats({ shares: [] });
+    }
+    setStatsLoading(false);
   };
 
   if (projects.length === 0) {
@@ -68,49 +91,183 @@ export default function Dashboard() {
       </div>
       <div className="grid-3">
         {projects.map((p) => (
-          <div
-            key={p.id}
-            className="card card-hover project-card"
-            onClick={() => navigate(p.generated ? `/present/${p.id}` : `/edit/${p.id}`)}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <h3 style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>
-                  {p.company?.name || p.name || "Unbenannt"}
-                </h3>
-                <div className="project-meta">
-                  {p.company?.city && <span>{p.company.city} · </span>}
-                  {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
-                  {p.generated && (
-                    p.generatedAt && p.updatedAt > p.generatedAt + 5000
-                      ? <span style={{ color: "var(--yellow)", marginLeft: "0.5rem" }}>● Veraltet</span>
-                      : <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>● Generiert</span>
-                  )}
-                  {p.versions?.length > 0 && <span style={{ color: "var(--cyan)", marginLeft: "0.5rem" }}>{p.versions.length} V.</span>}
-                  {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
+          <div key={p.id}>
+            <div
+              className="card card-hover project-card"
+              onClick={() => navigate(p.generated ? `/present/${p.id}` : `/edit/${p.id}`)}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h3 style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>
+                    {p.company?.name || p.name || "Unbenannt"}
+                  </h3>
+                  <div className="project-meta">
+                    {p.company?.city && <span>{p.company.city} · </span>}
+                    {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
+                    {p.generated && (
+                      p.generatedAt && p.updatedAt > p.generatedAt + 5000
+                        ? <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", animation: "pulse 2s ease-in-out infinite" }}>Veraltet</span>
+                        : <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>Generiert</span>
+                    )}
+                    {p.versions?.length > 0 && <span style={{ color: "var(--cyan)", marginLeft: "0.5rem" }}>{p.versions.length} V.</span>}
+                    {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "0.25rem" }}>
+                  <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/edit/${p.id}`); }} title="Bearbeiten" aria-label="Bearbeiten">
+                    <Icon name="settings" size={12} />
+                  </button>
+                  <button
+                    className={`btn ${copiedId === p.id ? "btn-primary" : "btn-secondary"} btn-sm`}
+                    onClick={(e) => handleShare(e, p)}
+                    title={copiedId === p.id ? "Link kopiert!" : "Link erstellen & teilen"}
+                    aria-label="Teilen"
+                    disabled={shareLoading === p.id}
+                  >
+                    {shareLoading === p.id ? (
+                      <span className="spinner" style={{ width: 12, height: 12, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "var(--yellow)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    ) : (
+                      <Icon name={copiedId === p.id ? "check" : "eye"} size={12} />
+                    )}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={(e) => handleOpenStats(e, p.id)} title="Statistiken" aria-label="Statistiken"
+                    style={statsOpen === p.id ? { background: "var(--yellow)", color: "var(--black)" } : undefined}>
+                    <Icon name="chart" size={12} />
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={(e) => handleDuplicate(e, p.id)} title="Duplizieren" aria-label="Duplizieren">
+                    <Icon name="copy" size={12} />
+                  </button>
+                  <button className="btn btn-danger btn-sm" onClick={(e) => handleDelete(e, p.id)} title="Löschen" aria-label="Löschen">
+                    <Icon name="trash" size={12} />
+                  </button>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "0.25rem" }}>
-                <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/edit/${p.id}`); }} title="Einstellungen">
-                  <Icon name="settings" size={12} />
-                </button>
-                <button className={`btn ${copiedId === p.id ? "btn-primary" : "btn-secondary"} btn-sm`} onClick={(e) => handleShare(e, p)} title={copiedId === p.id ? "Link kopiert!" : "Teilen"}>
-                  <Icon name={copiedId === p.id ? "check" : "eye"} size={12} />
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={(e) => handleDuplicate(e, p.id)} title="Duplizieren">
-                  <Icon name="copy" size={12} />
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={(e) => handleDelete(e, p.id)} title="Löschen">
-                  <Icon name="trash" size={12} />
-                </button>
-              </div>
+              {p.updatedAt && (
+                <div className="project-meta" style={{ marginTop: "0.75rem", fontSize: "0.7rem" }}>
+                  Zuletzt: {new Date(p.updatedAt).toLocaleDateString("de-DE")}
+                </div>
+              )}
             </div>
-            {p.updatedAt && (
-              <div className="project-meta" style={{ marginTop: "0.75rem", fontSize: "0.7rem" }}>
-                Zuletzt: {new Date(p.updatedAt).toLocaleDateString("de-DE")}
-              </div>
+
+            {/* Analytics Panel */}
+            {statsOpen === p.id && (
+              <ShareAnalytics stats={stats} loading={statsLoading} projectName={p.company?.name || p.name} />
             )}
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShareAnalytics({ stats, loading, projectName }) {
+  if (loading) {
+    return (
+      <div className="card" style={{ marginTop: "0.5rem", padding: "1rem", textAlign: "center" }}>
+        <div className="spinner" style={{ width: 20, height: 20, border: "2px solid var(--gray-mid)", borderTopColor: "var(--yellow)", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+        <div style={{ fontSize: "0.75rem", color: "var(--gray-text)", marginTop: "0.5rem" }}>Lade Statistiken...</div>
+      </div>
+    );
+  }
+
+  if (!stats?.shares?.length) {
+    return (
+      <div className="card" style={{ marginTop: "0.5rem", padding: "1rem", textAlign: "center" }}>
+        <div style={{ fontSize: "0.85rem", color: "var(--gray-text)" }}>
+          Noch keine geteilten Links. Klicke auf <Icon name="eye" size={12} /> um einen Link zu erstellen.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ marginTop: "0.5rem", padding: "1rem" }}>
+      <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+        <Icon name="chart" size={14} color="var(--yellow)" /> Link-Statistiken
+      </div>
+      {stats.shares.map((s) => (
+        <div key={s.slug} style={{ padding: "0.6rem", marginBottom: "0.5rem", background: "var(--off-white)", borderRadius: 8, border: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+            <div>
+              <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>/p/{s.slug}</div>
+              <div style={{ fontSize: "0.65rem", color: "var(--gray-text)" }}>
+                Erstellt: {new Date(s.createdAt).toLocaleDateString("de-DE")}
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--yellow)" }}>{s.totalViews}</div>
+              <div style={{ fontSize: "0.6rem", color: "var(--gray-text)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Aufrufe</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <StatPill label="Geräte" value={s.uniqueDevices} />
+            <StatPill label="Letzte 30 Tage" value={s.recentViews} />
+            {s.lastView && (
+              <StatPill label="Letzter Aufruf" value={new Date(s.lastView).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} />
+            )}
+          </div>
+
+          {/* Device breakdown */}
+          {s.deviceBreakdown && Object.keys(s.deviceBreakdown).length > 0 && (
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem" }}>
+              {Object.entries(s.deviceBreakdown).map(([device, count]) => (
+                <span key={device} style={{
+                  fontSize: "0.65rem", padding: "0.15rem 0.5rem", borderRadius: 12,
+                  background: device === "desktop" ? "rgba(41,171,226,0.1)" : device === "mobile" ? "rgba(255,206,0,0.1)" : "rgba(45,140,78,0.1)",
+                  color: device === "desktop" ? "var(--cyan)" : device === "mobile" ? "var(--yellow)" : "var(--green)",
+                  border: `1px solid ${device === "desktop" ? "rgba(41,171,226,0.2)" : device === "mobile" ? "rgba(255,206,0,0.2)" : "rgba(45,140,78,0.2)"}`,
+                }}>
+                  {device === "desktop" ? "Desktop" : device === "mobile" ? "Mobil" : "Tablet"}: {count}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Mini daily chart (last 14 days) */}
+          {s.dailyViews && Object.keys(s.dailyViews).length > 0 && (
+            <DailyChart dailyViews={s.dailyViews} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatPill({ label, value }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+      <span style={{ fontSize: "0.65rem", color: "var(--gray-text)" }}>{label}:</span>
+      <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
+function DailyChart({ dailyViews }) {
+  // Build 14-day array
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    days.push({ key, count: dailyViews[key] || 0, label: d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) });
+  }
+  const maxCount = Math.max(...days.map(d => d.count), 1);
+
+  return (
+    <div style={{ marginTop: "0.5rem" }}>
+      <div style={{ fontSize: "0.6rem", color: "var(--gray-text)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        Aufrufe (14 Tage)
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 32 }}>
+        {days.map((d) => (
+          <div key={d.key} title={`${d.label}: ${d.count} Aufrufe`} style={{
+            flex: 1, minWidth: 4,
+            height: d.count > 0 ? Math.max(4, (d.count / maxCount) * 32) : 2,
+            background: d.count > 0 ? "var(--yellow)" : "var(--gray-mid)",
+            borderRadius: 2,
+            opacity: d.count > 0 ? 1 : 0.3,
+            transition: "height 0.3s",
+          }} />
         ))}
       </div>
     </div>

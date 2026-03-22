@@ -42,6 +42,13 @@ export default function Wizard() {
     return () => clearTimeout(timer);
   }, [project, step]);
 
+  // Warn before unload if project has unsaved changes (debounce in flight)
+  useEffect(() => {
+    const warn = (e) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
+
   const update = (section, data) => {
     setProject((prev) => ({ ...prev, [section]: { ...prev[section], ...data } }));
   };
@@ -91,7 +98,14 @@ export default function Wizard() {
       </div>
 
       {/* Step content */}
-      {step === 0 && <CompanyStep data={project.company} onChange={(d) => update("company", d)} />}
+      {step === 0 && (
+        <CompanyStep
+          data={project.company}
+          onChange={(d) => update("company", d)}
+          theme={project.theme}
+          onThemeChange={(t) => updateFull("theme", t)}
+        />
+      )}
       {step === 1 && <EnergyStep data={project.energy} onChange={(d) => update("energy", d)} />}
       {step === 2 && (
         <PhaseStep

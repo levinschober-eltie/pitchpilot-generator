@@ -385,6 +385,7 @@ body {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 .gen-stream {
   max-height: 300px;
@@ -413,14 +414,31 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Responsive */
+/* Responsive — Tablet */
+@media (max-width: 1024px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Responsive — Mobile */
 @media (max-width: 768px) {
   .app-header { padding: 0.75rem 1rem; }
   .app-main { padding: 1rem; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .wizard-steps { flex-wrap: wrap; }
+  .wizard-steps { flex-wrap: wrap; gap: 0.3rem; }
+  .wizard-step { padding: 0.4rem 0.65rem; font-size: 0.65rem; }
+  .wizard-step span:last-child { display: none; }
   .slider-row { flex-wrap: wrap; }
   .slider-row label { flex: 0 0 100%; }
+  .btn { min-height: 44px; }
+  .phase-toggle { min-height: 48px; }
+}
+
+/* Responsive — Small phones */
+@media (max-width: 480px) {
+  .app-header h1 { font-size: 0.8rem; letter-spacing: 1px; }
+  .app-main { padding: 0.75rem; }
+  .card { padding: 1rem; }
+  .btn-lg { padding: 0.65rem 1.5rem; font-size: 0.78rem; }
 }
 
 /* Animations */

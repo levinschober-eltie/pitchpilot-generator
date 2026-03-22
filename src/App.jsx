@@ -14,6 +14,7 @@ function lazyRetry(fn) {
 const Wizard = lazyRetry(() => import("./components/Wizard"));
 const Presentation = lazyRetry(() => import("./components/PresentationRenderer"));
 const SharedPresentation = lazyRetry(() => import("./components/SharedPresentation"));
+const NamedShare = lazyRetry(() => import("./components/NamedShare"));
 const Settings = lazyRetry(() => import("./components/Settings"));
 
 function Loading() {
@@ -29,14 +30,16 @@ export default function App() {
   const location = useLocation();
   const isPresentation = location.pathname.startsWith("/present/");
   const isShared = location.pathname.startsWith("/shared");
+  const isNamedShare = location.pathname.startsWith("/p/");
 
-  if (isPresentation || isShared) {
+  if (isPresentation || isShared || isNamedShare) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/present/:id" element={<Presentation />} />
             <Route path="/shared" element={<SharedPresentation />} />
+            <Route path="/p/:slug" element={<NamedShare />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>

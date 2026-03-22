@@ -3,25 +3,26 @@ import { useSearchParams } from "react-router-dom";
 import { decodeSharePayload, saveCustomerVersion, getProject } from "../store";
 import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
 import { C } from "../colors";
+import { ThemeProvider, useTheme } from "../ThemeContext";
 import Icon from "./Icons";
+import { getVal, setVal } from "../utils";
 
 const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
 const PhaseVisual = lazy(() => import("./PhaseVisuals"));
 
-const F = "Calibri, sans-serif";
-const S = {
-  labelSmall: { fontFamily: F, fontSize: "0.7rem", letterSpacing: "0.5px", textTransform: "uppercase", color: "#B0B0A6" },
-  valueText: { fontFamily: F, fontSize: "1.05rem", fontWeight: 700, lineHeight: 1.1 },
+const mkS = (T) => ({
+  labelSmall: { fontFamily: T.font, fontSize: "0.7rem", letterSpacing: "0.5px", textTransform: "uppercase", color: T.midGray },
+  valueText: { fontFamily: T.font, fontSize: "1.05rem", fontWeight: 700, lineHeight: 1.1 },
   cardBase: { borderRadius: "7px", padding: "0.45rem 0.5rem", background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))" },
-  sectionHeading: { fontFamily: F, fontSize: "0.7rem", letterSpacing: "2px", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.5rem" },
-  pillBtn: { borderRadius: "2rem", fontFamily: F, fontSize: "0.7rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", transition: "all 0.3s", whiteSpace: "nowrap" },
-};
+  sectionHeading: { fontFamily: T.font, fontSize: "0.7rem", letterSpacing: "2px", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.5rem" },
+  pillBtn: { borderRadius: "2rem", fontFamily: T.font, fontSize: "0.7rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", transition: "all 0.3s", whiteSpace: "nowrap" },
+});
 
-const COLOR_MAP = { gold: C.gold, green: C.green, navy: C.navyLight };
-function getPhaseColor(phase) { return COLOR_MAP[phase?.color] || C.gold; }
+function getPhaseColor(phase, T) { const COLOR_MAP = { gold: T.gold, green: T.green, navy: T.navyLight }; return COLOR_MAP[phase?.color] || T.gold; }
 
 /* ── Config slider for customer adjustments ── */
 function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
+  const T = useTheme();
   const display = dec != null
     ? Number(value).toFixed(dec).replace(".", ",")
     : Number(value).toLocaleString("de-DE");
@@ -29,14 +30,14 @@ function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
   return (
     <div style={{ marginBottom: "0.5rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.15rem" }}>
-        <span style={{ fontFamily: F, fontSize: "0.72rem", color: "#aaa" }}>{label}</span>
-        <span style={{ fontFamily: F, fontSize: "0.75rem", color: C.goldLight, fontWeight: 600, padding: "0.1rem 0.3rem", borderRadius: 3, background: "rgba(255,255,255,0.04)" }}>
+        <span style={{ fontFamily: T.font, fontSize: "0.72rem", color: "#aaa" }}>{label}</span>
+        <span style={{ fontFamily: T.font, fontSize: "0.75rem", color: T.goldLight, fontWeight: 600, padding: "0.1rem 0.3rem", borderRadius: 3, background: "rgba(255,255,255,0.04)" }}>
           {display} <span style={{ fontSize: "0.6rem", color: "#777" }}>{unit}</span>
         </span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        style={{ width: "100%", accentColor: C.gold, height: 4, cursor: "pointer" }}
+        style={{ width: "100%", accentColor: T.gold, height: 4, cursor: "pointer" }}
       />
     </div>
   );
@@ -62,23 +63,7 @@ const CONFIG_GROUPS = [
   ]},
 ];
 
-function getVal(obj, path) {
-  let o = obj;
-  for (const k of path) { o = o?.[k]; }
-  return o;
-}
-function setVal(obj, path, value) {
-  const next = { ...obj };
-  if (path.length === 2) {
-    next[path[0]] = { ...next[path[0]], [path[1]]: value };
-  } else if (path.length === 3) {
-    next[path[0]] = {
-      ...next[path[0]],
-      [path[1]]: { ...(next[path[0]]?.[path[1]] || {}), [path[2]]: value },
-    };
-  }
-  return next;
-}
+/* getVal/setVal imported from ../utils */
 
 export default function SharedPresentation() {
   const [searchParams] = useSearchParams();
@@ -169,18 +154,40 @@ export default function SharedPresentation() {
     );
   }
 
+  return (
+    <ThemeProvider themeConfig={project?.theme}>
+      <SharedPresentationInner
+        project={project}
+        calc={calc}
+        heroCards={heroCards}
+        configOpen={configOpen}
+        setConfigOpen={setConfigOpen}
+        updateConfig={updateConfig}
+        handleSave={handleSave}
+        saved={saved}
+        saveError={saveError}
+      />
+    </ThemeProvider>
+  );
+}
+
+/* ── Inner component that consumes the theme ── */
+function SharedPresentationInner({ project, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError }) {
+  const T = useTheme();
+  const S = useMemo(() => mkS(T), [T]);
+
   if (!project.generated) {
     return (
       <div style={{
-        minHeight: "100vh", background: `radial-gradient(ellipse at center, ${C.navy} 0%, ${C.navyDeep} 100%)`,
-        color: C.warmWhite, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        minHeight: "100vh", background: `radial-gradient(ellipse at center, ${T.navy} 0%, ${T.navyDeep} 100%)`,
+        color: T.warmWhite, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         textAlign: "center", padding: "2rem",
       }}>
-        <div style={{ fontFamily: F, fontSize: "0.7rem", letterSpacing: "5px", textTransform: "uppercase", fontWeight: 700, color: C.gold, marginBottom: "1.5rem" }}>PITCHPILOT</div>
+        <div style={{ fontFamily: T.font, fontSize: "0.7rem", letterSpacing: "5px", textTransform: "uppercase", fontWeight: 700, color: T.gold, marginBottom: "1.5rem" }}>PITCHPILOT</div>
         <h1 style={{ fontSize: "clamp(1.5rem, 4vw, 2.5rem)", fontWeight: 400, marginBottom: "1rem" }}>
           {project.company?.name || "Ihr Energiekonzept"}
         </h1>
-        <p style={{ color: C.softGray, maxWidth: 500, marginBottom: "2rem" }}>
+        <p style={{ color: T.softGray, maxWidth: 500, marginBottom: "2rem" }}>
           Die Präsentation für dieses Projekt wurde noch nicht generiert. Bitte kontaktieren Sie Ihren Berater.
         </p>
 
@@ -188,14 +195,14 @@ export default function SharedPresentation() {
         {calc && (
           <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "2rem" }}>
             {[
-              { label: "Investition", value: fmtEuro(calc.investGesamt), color: C.gold },
-              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight },
-              { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: C.greenLight },
-              { label: "Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.gold },
+              { label: "Investition", value: fmtEuro(calc.investGesamt), color: T.gold },
+              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: T.greenLight },
+              { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: T.greenLight },
+              { label: "Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: T.gold },
             ].map(item => (
               <div key={item.label} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: F, fontSize: "1.4rem", fontWeight: 700, color: item.color }}>{item.value}</div>
-                <div style={{ fontFamily: F, fontSize: "0.65rem", letterSpacing: "1px", textTransform: "uppercase", color: "#999" }}>{item.label}</div>
+                <div style={{ fontFamily: T.font, fontSize: "1.4rem", fontWeight: 700, color: item.color }}>{item.value}</div>
+                <div style={{ fontFamily: T.font, fontSize: "0.65rem", letterSpacing: "1px", textTransform: "uppercase", color: "#999" }}>{item.label}</div>
               </div>
             ))}
           </div>
@@ -204,9 +211,9 @@ export default function SharedPresentation() {
         {/* Config toggle */}
         <button onClick={() => setConfigOpen(o => !o)} style={{
           ...S.pillBtn, padding: "0.5rem 1.5rem",
-          background: configOpen ? `${C.gold}20` : "rgba(255,255,255,0.06)",
-          border: `1px solid ${configOpen ? `${C.gold}40` : "rgba(255,255,255,0.12)"}`,
-          color: configOpen ? C.gold : C.softGray,
+          background: configOpen ? `${T.gold}20` : "rgba(255,255,255,0.06)",
+          border: `1px solid ${configOpen ? `${T.gold}40` : "rgba(255,255,255,0.12)"}`,
+          color: configOpen ? T.gold : T.softGray,
         }}>
           <Icon name="chart" size={14} /> Kalkulation anpassen
         </button>
@@ -215,8 +222,8 @@ export default function SharedPresentation() {
           <div style={{ marginTop: "1.5rem", width: "min(400px, 90vw)", textAlign: "left" }}>
             {CONFIG_GROUPS.map(group => (
               <div key={group.title} style={{ marginBottom: "1rem" }}>
-                <div style={{ fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: C.gold, marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  <Icon name={group.icon} size={12} color={C.gold} /> {group.title}
+                <div style={{ fontFamily: T.font, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: T.gold, marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <Icon name={group.icon} size={12} color={T.gold} /> {group.title}
                 </div>
                 {group.sliders.map(s => (
                   <ConfigSlider key={s.path.join(".")} label={s.label} value={getVal(project, s.path) ?? 0}
@@ -228,9 +235,9 @@ export default function SharedPresentation() {
             ))}
             <button onClick={handleSave} style={{
               ...S.pillBtn, padding: "0.5rem 1.5rem", width: "100%", justifyContent: "center",
-              background: saved ? `${C.greenLight}20` : `${C.gold}20`,
-              border: `1px solid ${saved ? `${C.greenLight}40` : `${C.gold}40`}`,
-              color: saved ? C.greenLight : C.gold, marginTop: "0.5rem",
+              background: saved ? `${T.greenLight}20` : `${T.gold}20`,
+              border: `1px solid ${saved ? `${T.greenLight}40` : `${T.gold}40`}`,
+              color: saved ? T.greenLight : T.gold, marginTop: "0.5rem",
             }}>
               <Icon name={saved ? "check" : "download"} size={14} />
               {saved ? "Kalkulation gespeichert!" : saveError ? "Speichern fehlgeschlagen" : "Kalkulation speichern"}
@@ -239,10 +246,10 @@ export default function SharedPresentation() {
         )}
 
         {project.consultant && (
-          <div style={{ marginTop: "2rem", padding: "1rem", background: `${C.gold}08`, borderRadius: 12, border: `1px solid ${C.gold}20` }}>
-            <div style={{ fontFamily: F, fontSize: "0.85rem", color: C.warmWhite }}>{project.consultant.name} · {project.consultant.company}</div>
+          <div style={{ marginTop: "2rem", padding: "1rem", background: `${T.gold}08`, borderRadius: 12, border: `1px solid ${T.gold}20` }}>
+            <div style={{ fontFamily: T.font, fontSize: "0.85rem", color: T.warmWhite }}>{project.consultant.name} · {project.consultant.company}</div>
             {project.consultant.email && (
-              <a href={`mailto:${project.consultant.email}`} style={{ color: C.gold, fontSize: "0.8rem", fontFamily: F }}>
+              <a href={`mailto:${project.consultant.email}`} style={{ color: T.gold, fontSize: "0.8rem", fontFamily: T.font }}>
                 Kontakt aufnehmen
               </a>
             )}
@@ -270,18 +277,21 @@ export default function SharedPresentation() {
       updateConfig={updateConfig}
       handleSave={handleSave}
       saved={saved}
+      saveError={saveError}
     />
   );
 }
 
 /* ── Full presentation view (extracted for readability) ── */
-function SharedPresentationFull({ project, gen, phases, company, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved }) {
+function SharedPresentationFull({ project, gen, phases, company, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError }) {
+  const T = useTheme();
+  const S = useMemo(() => mkS(T), [T]);
   const [active, setActive] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const totalSlides = phases.length + 1;
   const isFinal = active === phases.length;
   const currentPhase = isFinal ? null : phases[active];
-  const currentColor = isFinal ? C.gold : getPhaseColor(currentPhase);
+  const currentColor = isFinal ? T.gold : getPhaseColor(currentPhase, T);
   const enabledPhases = useMemo(() => (project?.phases || []).filter(p => p.enabled), [project?.phases]);
   const currentPhaseKey = !isFinal && enabledPhases[active] ? enabledPhases[active].key : null;
   const liveKpis = currentPhaseKey && calc ? getPhaseCalcItems(currentPhaseKey, calc) : null;
@@ -303,19 +313,19 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
     return (
       <div style={{
         minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        background: `radial-gradient(ellipse at center, ${C.navy} 0%, ${C.navyDeep} 100%)`,
-        textAlign: "center", padding: "2rem", color: C.warmWhite,
+        background: `radial-gradient(ellipse at center, ${T.navy} 0%, ${T.navyDeep} 100%)`,
+        textAlign: "center", padding: "2rem", color: T.warmWhite,
       }}>
-        <div style={{ fontFamily: F, fontSize: "0.7rem", letterSpacing: "5px", textTransform: "uppercase", fontWeight: 700, color: C.gold, marginBottom: "1.5rem" }}>
+        <div style={{ fontFamily: T.font, fontSize: "0.7rem", letterSpacing: "5px", textTransform: "uppercase", fontWeight: 700, color: T.gold, marginBottom: "1.5rem" }}>
           {project.consultant?.company || "PITCHPILOT"}
         </div>
         <h1 style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)", fontWeight: 400, marginBottom: "0.5rem", maxWidth: 700 }}>
           {gen.intro?.headline || `Erstellt für ${company.name}`}
         </h1>
-        <div style={{ fontSize: "1.1rem", color: C.softGray, marginBottom: "0.5rem" }}>
+        <div style={{ fontSize: "1.1rem", color: T.softGray, marginBottom: "0.5rem" }}>
           {gen.intro?.subtitle || "Phasenkonzept zur Energietransformation"}
         </div>
-        <div style={{ fontStyle: "italic", color: C.gold, fontSize: "0.9rem", marginBottom: "2.5rem" }}>
+        <div style={{ fontStyle: "italic", color: T.gold, fontSize: "0.9rem", marginBottom: "2.5rem" }}>
           {gen.intro?.tagline || ""}
         </div>
 
@@ -323,8 +333,8 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           {phases.map((p, i) => (
             <span key={i} style={{
               padding: "0.3rem 0.75rem", borderRadius: "2rem",
-              border: `1px solid ${getPhaseColor(p)}50`, background: `${getPhaseColor(p)}10`,
-              color: getPhaseColor(p), fontFamily: F, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "1px",
+              border: `1px solid ${getPhaseColor(p, T)}50`, background: `${getPhaseColor(p, T)}10`,
+              color: getPhaseColor(p, T), fontFamily: T.font, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "1px",
             }}>
               {p.num} — {p.title}
             </span>
@@ -332,9 +342,9 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
         </div>
 
         <button onClick={() => setShowIntro(false)} style={{
-          ...S.pillBtn, background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
-          color: C.navyDeep, padding: "0.75rem 2.5rem", fontSize: "0.8rem", border: "none",
-          boxShadow: `0 4px 25px ${C.gold}40`,
+          ...S.pillBtn, background: `linear-gradient(135deg, ${T.gold}, ${T.goldLight})`,
+          color: T.navyDeep, padding: "0.75rem 2.5rem", fontSize: "0.8rem", border: "none",
+          boxShadow: `0 4px 25px ${T.gold}40`,
         }}>
           Konzept entdecken <Icon name="arrowRight" size={16} />
         </button>
@@ -342,14 +352,14 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
         {calc && (
           <div style={{ marginTop: "3rem", display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center" }}>
             {[
-              { label: "Investition", value: fmtEuro(calc.investGesamt), color: C.gold },
-              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight },
-              { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: C.greenLight },
-              { label: "Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.gold },
+              { label: "Investition", value: fmtEuro(calc.investGesamt), color: T.gold },
+              { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: T.greenLight },
+              { label: "CO₂", value: `${fmtNum(calc.co2Gesamt)} t/a`, color: T.greenLight },
+              { label: "Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: T.gold },
             ].map(item => (
               <div key={item.label} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: F, fontSize: "1.4rem", fontWeight: 700, color: item.color }}>{item.value}</div>
-                <div style={{ fontFamily: F, fontSize: "0.65rem", letterSpacing: "1px", textTransform: "uppercase", color: "#999" }}>{item.label}</div>
+                <div style={{ fontFamily: T.font, fontSize: "1.4rem", fontWeight: 700, color: item.color }}>{item.value}</div>
+                <div style={{ fontFamily: T.font, fontSize: "0.65rem", letterSpacing: "1px", textTransform: "uppercase", color: "#999" }}>{item.label}</div>
               </div>
             ))}
           </div>
@@ -362,24 +372,24 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
   return (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(180deg, ${C.navyDeep} 0%, ${C.navy} 50%, ${C.navyDeep} 100%)`,
-      color: C.warmWhite,
+      background: `linear-gradient(180deg, ${T.navyDeep} 0%, ${T.navy} 50%, ${T.navyDeep} 100%)`,
+      color: T.warmWhite,
     }}>
       {/* Header */}
       <div style={{ padding: "2rem 2rem 1rem", position: "relative", zIndex: 2 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
-          <span style={{ fontFamily: F, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "4px", fontWeight: 700, color: C.gold }}>
+          <span style={{ fontFamily: T.font, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "4px", fontWeight: 700, color: T.gold }}>
             {(company.name || "").toUpperCase()}
           </span>
-          <span style={{ width: 40, height: 1, background: C.gold, display: "inline-block" }} />
-          <span style={{ fontFamily: F, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "2px", color: C.softGray }}>
+          <span style={{ width: 40, height: 1, background: T.gold, display: "inline-block" }} />
+          <span style={{ fontFamily: T.font, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "2px", color: T.softGray }}>
             Energietransformation
           </span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
           <h1 style={{
             fontSize: "clamp(1.5rem, 4vw, 2.4rem)", fontWeight: 700, margin: "0.6rem 0 0", lineHeight: 1.2,
-            background: `linear-gradient(135deg, ${C.warmWhite} 0%, ${C.goldLight} 100%)`,
+            background: `linear-gradient(135deg, ${T.warmWhite} 0%, ${T.goldLight} 100%)`,
             backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>
             Phasenkonzept zur Energietransformation
@@ -387,9 +397,9 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           <div style={{ display: "flex", gap: "0.3rem", marginTop: "0.6rem" }}>
             <button onClick={() => setConfigOpen(o => !o)} style={{
               ...S.pillBtn, padding: "0.3rem 0.7rem",
-              background: configOpen ? `${C.gold}20` : "rgba(255,255,255,0.06)",
-              border: `1px solid ${configOpen ? `${C.gold}40` : "rgba(255,255,255,0.12)"}`,
-              color: configOpen ? C.gold : C.softGray,
+              background: configOpen ? `${T.gold}20` : "rgba(255,255,255,0.06)",
+              border: `1px solid ${configOpen ? `${T.gold}40` : "rgba(255,255,255,0.12)"}`,
+              color: configOpen ? T.gold : T.softGray,
             }}>
               <Icon name="chart" size={12} /> Kalkulation
             </button>
@@ -408,8 +418,8 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
                 display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem",
                 padding: "0.25rem 0.5rem", opacity: isActive ? 1 : 0.4, transition: "all 0.3s ease",
               }}>
-                <Icon name={i === phases.length ? "sparkle" : (p.icon || "target")} size={isActive ? 24 : 16} color={isActive ? C.gold : C.softGray} />
-                <span style={{ fontFamily: F, fontSize: "0.75rem", letterSpacing: "1.5px", textTransform: "uppercase", color: isActive ? C.gold : C.softGray }}>
+                <Icon name={i === phases.length ? "sparkle" : (p.icon || "target")} size={isActive ? 24 : 16} color={isActive ? T.gold : T.softGray} />
+                <span style={{ fontFamily: T.font, fontSize: "0.75rem", letterSpacing: "1.5px", textTransform: "uppercase", color: isActive ? T.gold : T.softGray }}>
                   {p.num}
                 </span>
               </button>
@@ -425,18 +435,18 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
             <div style={{
               position: "absolute", left: 0, top: 0, height: 6, borderRadius: 3,
-              width: `${sliderPct}%`, background: `linear-gradient(90deg, ${C.gold}, ${C.greenLight})`,
+              width: `${sliderPct}%`, background: `linear-gradient(90deg, ${T.gold}, ${T.greenLight})`,
               transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
             }} />
           </div>
           <div style={{
             position: "absolute", left: `${sliderPct}%`, top: 3, transform: "translate(-50%, -50%)",
-            width: 20, height: 20, borderRadius: "50%", background: C.navy,
-            border: `2px solid ${C.gold}`, boxShadow: `0 0 12px ${C.gold}40`,
+            width: 20, height: 20, borderRadius: "50%", background: T.navy,
+            border: `2px solid ${T.gold}`, boxShadow: `0 0 12px ${T.gold}40`,
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)", zIndex: 2,
           }}>
-            <span style={{ fontFamily: "Georgia, serif", fontSize: "0.6rem", fontWeight: 700, color: C.gold }}>
+            <span style={{ fontFamily: T.fontSerif, fontSize: "0.6rem", fontWeight: 700, color: T.gold }}>
               {isFinal ? "★" : currentPhase?.num}
             </span>
           </div>
@@ -455,18 +465,18 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
             <Icon name={isFinal ? "sparkle" : (currentPhase?.icon || "target")} size={24} color={currentColor} />
           </div>
           <div>
-            <div style={{ fontFamily: F, fontSize: "0.75rem", letterSpacing: "3px", textTransform: "uppercase", fontWeight: 700, color: C.gold, marginBottom: "0.2rem" }}>
+            <div style={{ fontFamily: T.font, fontSize: "0.75rem", letterSpacing: "3px", textTransform: "uppercase", fontWeight: 700, color: T.gold, marginBottom: "0.2rem" }}>
               {isFinal ? "Gesamtergebnis" : `Phase ${currentPhase?.num} · ${currentPhase?.title}`}
             </div>
-            <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)", fontWeight: 700, margin: 0, lineHeight: 1.15, color: C.warmWhite }}>
+            <h2 style={{ fontFamily: T.fontSerif, fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)", fontWeight: 700, margin: 0, lineHeight: 1.15, color: T.warmWhite }}>
               {isFinal ? "Ergebnis & Wirtschaftlichkeit" : currentPhase?.title}
             </h2>
           </div>
         </div>
 
         {!isFinal && currentPhase?.headline && (
-          <div style={{ borderLeft: `3px solid ${C.gold}`, paddingLeft: "1rem", marginBottom: "1rem" }}>
-            <p style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.1rem, 2.5vw, 1.35rem)", fontStyle: "italic", color: C.goldLight, margin: 0, lineHeight: 1.5 }}>
+          <div style={{ borderLeft: `3px solid ${T.gold}`, paddingLeft: "1rem", marginBottom: "1rem" }}>
+            <p style={{ fontFamily: T.fontSerif, fontSize: "clamp(1.1rem, 2.5vw, 1.35rem)", fontStyle: "italic", color: T.goldLight, margin: 0, lineHeight: 1.5 }}>
               „{currentPhase.headline}"
             </p>
           </div>
@@ -476,7 +486,7 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           <div>
             {!isFinal && currentPhase && (
               <div style={{ animation: "fadeSlideIn 0.5s ease forwards" }}>
-                <p style={{ fontFamily: F, fontSize: "1.0rem", lineHeight: 1.7, color: "rgba(255,255,255,0.75)", margin: "0 0 0.8rem 0" }}>
+                <p style={{ fontFamily: T.font, fontSize: "1.0rem", lineHeight: 1.7, color: "rgba(255,255,255,0.75)", margin: "0 0 0.8rem 0" }}>
                   {currentPhase.description}
                 </p>
                 {(liveKpis || currentPhase.kpis)?.length > 0 && (
@@ -484,18 +494,18 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
                     {(liveKpis || currentPhase.kpis).map((k, i) => (
                       <div key={i} style={{ ...S.cardBase, borderLeft: `2px solid ${currentColor}70` }}>
                         <div style={{ ...S.labelSmall, marginBottom: "0.15rem" }}>{k.label}</div>
-                        <div style={{ ...S.valueText, color: C.goldLight }}>{k.value}</div>
+                        <div style={{ ...S.valueText, color: T.goldLight }}>{k.value}</div>
                       </div>
                     ))}
                   </div>
                 )}
                 {currentPhase.results?.length > 0 && (
                   <>
-                    <div style={{ ...S.sectionHeading, color: C.softGray, marginBottom: "0.35rem" }}>Ergebnisse</div>
+                    <div style={{ ...S.sectionHeading, color: T.softGray, marginBottom: "0.35rem" }}>Ergebnisse</div>
                     {currentPhase.results.map((r, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", marginBottom: "0.2rem" }}>
                         <span style={{ color: currentColor, fontSize: "0.7rem", opacity: 0.6, marginTop: "0.15rem" }}>●</span>
-                        <span style={{ fontFamily: F, fontSize: "0.85rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>{r}</span>
+                        <span style={{ fontFamily: T.font, fontSize: "0.85rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>{r}</span>
                       </div>
                     ))}
                   </>
@@ -507,31 +517,31 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
                 {heroCards?.length > 0 && (
                   <div style={{ display: "grid", gridTemplateColumns: `repeat(${heroCards.length}, 1fr)`, gap: "1rem", marginBottom: "1.5rem" }}>
                     {heroCards.map((card, i) => {
-                      const cardColor = card.accent === "green" ? C.greenLight : C.gold;
+                      const cardColor = card.accent === "green" ? T.greenLight : T.gold;
                       return (
                         <div key={i} style={{
                           background: `linear-gradient(135deg, ${cardColor}15, ${cardColor}08)`,
                           border: `2px solid ${cardColor}40`, borderRadius: "12px", padding: "1.25rem", textAlign: "center",
                         }}>
                           <Icon name={card.icon} size={28} color={cardColor} />
-                          <div style={{ fontSize: "1.6rem", fontWeight: 700, fontFamily: F, color: cardColor, marginTop: "0.5rem" }}>{card.value}</div>
+                          <div style={{ fontSize: "1.6rem", fontWeight: 700, fontFamily: T.font, color: cardColor, marginTop: "0.5rem" }}>{card.value}</div>
                           <div style={{ ...S.labelSmall, marginTop: "0.25rem" }}>{card.label}</div>
                         </div>
                       );
                     })}
                   </div>
                 )}
-                <div style={{ ...S.sectionHeading, color: C.gold }}>Ihre Gesamtberechnung</div>
+                <div style={{ ...S.sectionHeading, color: T.gold }}>Ihre Gesamtberechnung</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
                   {[
-                    { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), c: C.gold },
-                    { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, c: C.greenLight },
-                    { label: "Einsparung/a", value: `${fmtEuro(calc.einsparungStandort)}/a`, c: C.greenLight },
-                    { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, c: C.gold },
+                    { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), c: T.gold },
+                    { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, c: T.greenLight },
+                    { label: "Einsparung/a", value: `${fmtEuro(calc.einsparungStandort)}/a`, c: T.greenLight },
+                    { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, c: T.gold },
                   ].map((item, i) => (
                     <div key={i} style={{ ...S.cardBase, textAlign: "center", padding: "0.6rem 0.4rem" }}>
                       <div style={{ ...S.labelSmall, fontSize: "0.55rem" }}>{item.label}</div>
-                      <div style={{ fontFamily: F, fontSize: "0.95rem", fontWeight: 700, color: item.c, marginTop: "0.15rem" }}>{item.value}</div>
+                      <div style={{ fontFamily: T.font, fontSize: "0.95rem", fontWeight: 700, color: item.c, marginTop: "0.15rem" }}>{item.value}</div>
                     </div>
                   ))}
                 </div>
@@ -553,7 +563,7 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
       <div style={{
         padding: "1rem 2rem", borderTop: "1px solid rgba(255,255,255,0.05)",
         display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem",
-        fontFamily: F, fontSize: "0.75rem", color: C.softGray,
+        fontFamily: T.font, fontSize: "0.75rem", color: T.softGray,
       }}>
         <span>{company.name} · {company.city || ""}</span>
         <span style={{ fontStyle: "italic" }}>
@@ -566,11 +576,11 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
         <div style={{
           position: "fixed", top: 0, right: 0, bottom: 0, width: "min(380px, 85vw)", zIndex: 9000,
           background: "rgba(15,26,46,0.98)", backdropFilter: "blur(12px)",
-          borderLeft: `1px solid ${C.gold}20`, overflowY: "auto",
+          borderLeft: `1px solid ${T.gold}20`, overflowY: "auto",
           animation: "slideInRight 0.3s ease",
         }}>
-          <div style={{ padding: "1rem 1.25rem", borderBottom: `1px solid ${C.gold}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontFamily: F, fontSize: "1rem", fontWeight: 700, color: C.gold }}>Kalkulation anpassen</div>
+          <div style={{ padding: "1rem 1.25rem", borderBottom: `1px solid ${T.gold}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontFamily: T.font, fontSize: "1rem", fontWeight: 700, color: T.gold }}>Kalkulation anpassen</div>
             <button onClick={() => setConfigOpen(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
               <Icon name="close" size={14} color="#888" />
             </button>
@@ -578,8 +588,8 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           <div style={{ padding: "1rem 1.25rem" }}>
             {CONFIG_GROUPS.map(group => (
               <div key={group.title} style={{ marginBottom: "1.25rem" }}>
-                <div style={{ fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: C.gold, marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem", paddingBottom: "0.3rem", borderBottom: `1px solid ${C.gold}15` }}>
-                  <Icon name={group.icon} size={12} color={C.gold} /> {group.title}
+                <div style={{ fontFamily: T.font, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: T.gold, marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem", paddingBottom: "0.3rem", borderBottom: `1px solid ${T.gold}15` }}>
+                  <Icon name={group.icon} size={12} color={T.gold} /> {group.title}
                 </div>
                 {group.sliders.map(s => (
                   <ConfigSlider key={s.path.join(".")} label={s.label} value={getVal(project, s.path) ?? 0}
@@ -591,19 +601,19 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
             ))}
 
             {calc && (
-              <div style={{ padding: "0.75rem", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: `1px solid ${C.gold}15`, marginBottom: "1rem" }}>
-                <div style={{ fontFamily: F, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: C.greenLight, marginBottom: "0.5rem" }}>
+              <div style={{ padding: "0.75rem", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: `1px solid ${T.gold}15`, marginBottom: "1rem" }}>
+                <div style={{ fontFamily: T.font, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: T.greenLight, marginBottom: "0.5rem" }}>
                   LIVE-ERGEBNIS
                 </div>
                 {[
-                  { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), color: C.gold },
-                  { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: C.greenLight },
-                  { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: C.gold },
-                  { label: "Jährl. Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: C.greenLight },
+                  { label: "Gesamtinvest", value: fmtEuro(calc.investGesamt), color: T.gold },
+                  { label: "Autarkie", value: `${fmtNum(calc.autarkie)}%`, color: T.greenLight },
+                  { label: "Amortisation", value: `${fmtNum(calc.amortisationGesamt, 1)} J.`, color: T.gold },
+                  { label: "Jährl. Ertrag", value: `${fmtEuro(calc.gesamtertrag)}/a`, color: T.greenLight },
                 ].map(item => (
                   <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "0.2rem 0", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                    <span style={{ fontFamily: F, fontSize: "0.7rem", color: "#999" }}>{item.label}</span>
-                    <span style={{ fontFamily: F, fontSize: "0.78rem", fontWeight: 700, color: item.color }}>{item.value}</span>
+                    <span style={{ fontFamily: T.font, fontSize: "0.7rem", color: "#999" }}>{item.label}</span>
+                    <span style={{ fontFamily: T.font, fontSize: "0.78rem", fontWeight: 700, color: item.color }}>{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -611,9 +621,9 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
 
             <button onClick={handleSave} style={{
               ...S.pillBtn, padding: "0.6rem 1.5rem", width: "100%", justifyContent: "center",
-              background: saved ? `${C.greenLight}20` : `${C.gold}20`,
-              border: `1px solid ${saved ? `${C.greenLight}40` : `${C.gold}40`}`,
-              color: saved ? C.greenLight : C.gold,
+              background: saved ? `${T.greenLight}20` : `${T.gold}20`,
+              border: `1px solid ${saved ? `${T.greenLight}40` : `${T.gold}40`}`,
+              color: saved ? T.greenLight : T.gold,
             }}>
               <Icon name={saved ? "check" : "download"} size={14} />
               {saved ? "Kalkulation gespeichert!" : saveError ? "Speichern fehlgeschlagen" : "Kalkulation speichern"}

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { calculateAll, project20Years, fmtEuro, fmtNum, getPhaseCalcItems, getDynamicHeroCards } from "../calcEngine";
 import { C } from "../colors";
+import { useTheme } from "../ThemeContext";
 import Icon from "./Icons";
 
 /* ─────────────────────────────────────────────
@@ -620,105 +621,109 @@ function generatePdf(project, selected) {
 /* ─────────────────────────────────────────────
    Modal UI styles
 ───────────────────────────────────────────── */
-const S = {
-  overlay: {
-    position: "fixed", inset: 0, zIndex: 2000,
-    background: "rgba(11,18,30,0.72)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    padding: "16px",
-  },
-  dialog: {
-    background: C.navy,
-    border: `1px solid ${C.navyLight}`,
-    borderRadius: "14px",
-    width: "100%", maxWidth: "620px",
-    maxHeight: "90vh",
-    display: "flex", flexDirection: "column",
-    boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
-    overflow: "hidden",
-  },
-  header: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "20px 24px 16px",
-    borderBottom: `1px solid ${C.navyLight}`,
-  },
-  headerTitle: {
-    fontSize: "18px", fontWeight: 700, color: C.warmWhite,
-    display: "flex", alignItems: "center", gap: "10px",
-  },
-  closeBtn: {
-    width: "44px", height: "44px",
-    background: "none", border: `1px solid ${C.navyLight}`,
-    borderRadius: "8px", cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    color: C.softGray, transition: "all 0.15s",
-  },
-  body: {
-    flex: 1, overflowY: "auto", padding: "20px 24px",
-  },
-  groupLabel: {
-    fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px",
-    textTransform: "uppercase", color: C.gold,
-    marginBottom: "8px", marginTop: "16px",
-  },
-  sectionGrid: {
-    display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px",
-  },
-  checkItem: {
-    display: "flex", alignItems: "center", gap: "10px",
-    padding: "8px 10px", borderRadius: "8px",
-    background: C.navyLight, cursor: "pointer",
-    transition: "background 0.15s", userSelect: "none",
-  },
-  checkItemLocked: {
-    display: "flex", alignItems: "center", gap: "10px",
-    padding: "8px 10px", borderRadius: "8px",
-    background: C.navyMid, cursor: "default",
-    userSelect: "none", opacity: 0.75,
-  },
-  checkLabel: {
-    fontSize: "13px", color: C.warmWhite, flex: 1,
-  },
-  checkLabelLocked: {
-    fontSize: "13px", color: C.softGray, flex: 1,
-  },
-  lockedBadge: {
-    fontSize: "9px", color: C.softGray, letterSpacing: "0.5px",
-  },
-  footer: {
-    padding: "16px 24px",
-    borderTop: `1px solid ${C.navyLight}`,
-    display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
-  },
-  previewText: {
-    fontSize: "12px", color: C.softGray,
-  },
-  previewCount: {
-    color: C.gold, fontWeight: 700,
-  },
-  generateBtn: {
-    display: "flex", alignItems: "center", gap: "8px",
-    padding: "12px 24px",
-    background: C.gold, color: C.navyDeep,
-    border: "none", borderRadius: "8px",
-    fontSize: "14px", fontWeight: 700, cursor: "pointer",
-    transition: "background 0.15s",
-  },
-};
+function getStyles(T) {
+  return {
+    overlay: {
+      position: "fixed", inset: 0, zIndex: 2000,
+      background: "rgba(11,18,30,0.72)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "16px",
+    },
+    dialog: {
+      background: T.navy,
+      border: `1px solid ${T.navyLight}`,
+      borderRadius: "14px",
+      width: "100%", maxWidth: "620px",
+      maxHeight: "90vh",
+      display: "flex", flexDirection: "column",
+      boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
+      overflow: "hidden",
+    },
+    header: {
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "20px 24px 16px",
+      borderBottom: `1px solid ${T.navyLight}`,
+    },
+    headerTitle: {
+      fontSize: "18px", fontWeight: 700, color: T.warmWhite,
+      display: "flex", alignItems: "center", gap: "10px",
+    },
+    closeBtn: {
+      width: "44px", height: "44px",
+      background: "none", border: `1px solid ${T.navyLight}`,
+      borderRadius: "8px", cursor: "pointer",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      color: T.softGray, transition: "all 0.15s",
+    },
+    body: {
+      flex: 1, overflowY: "auto", padding: "20px 24px",
+    },
+    groupLabel: {
+      fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px",
+      textTransform: "uppercase", color: T.gold,
+      marginBottom: "8px", marginTop: "16px",
+    },
+    sectionGrid: {
+      display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px",
+    },
+    checkItem: {
+      display: "flex", alignItems: "center", gap: "10px",
+      padding: "8px 10px", borderRadius: "8px",
+      background: T.navyLight, cursor: "pointer",
+      transition: "background 0.15s", userSelect: "none",
+    },
+    checkItemLocked: {
+      display: "flex", alignItems: "center", gap: "10px",
+      padding: "8px 10px", borderRadius: "8px",
+      background: T.navyMid, cursor: "default",
+      userSelect: "none", opacity: 0.75,
+    },
+    checkLabel: {
+      fontSize: "13px", color: T.warmWhite, flex: 1,
+    },
+    checkLabelLocked: {
+      fontSize: "13px", color: T.softGray, flex: 1,
+    },
+    lockedBadge: {
+      fontSize: "9px", color: T.softGray, letterSpacing: "0.5px",
+    },
+    footer: {
+      padding: "16px 24px",
+      borderTop: `1px solid ${T.navyLight}`,
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+    },
+    previewText: {
+      fontSize: "12px", color: T.softGray,
+    },
+    previewCount: {
+      color: T.gold, fontWeight: 700,
+    },
+    generateBtn: {
+      display: "flex", alignItems: "center", gap: "8px",
+      padding: "12px 24px",
+      background: T.gold, color: T.navyDeep,
+      border: "none", borderRadius: "8px",
+      fontSize: "14px", fontWeight: 700, cursor: "pointer",
+      transition: "background 0.15s",
+    },
+  };
+}
 
 /* ─────────────────────────────────────────────
    Checkbox component
 ───────────────────────────────────────────── */
 function SectionCheck({ section, checked, onChange }) {
+  const T = useTheme();
+  const S = getStyles(T);
   if (section.locked) {
     return (
       <div style={S.checkItemLocked}>
         <div style={{
           width: 18, height: 18, borderRadius: 4,
-          background: C.gold, flexShrink: 0,
+          background: T.gold, flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <Icon name="check" size={11} color={C.navyDeep} />
+          <Icon name="check" size={11} color={T.navyDeep} />
         </div>
         <span style={S.checkLabelLocked}>{section.label}</span>
         <span style={S.lockedBadge}>Pflicht</span>
@@ -726,15 +731,15 @@ function SectionCheck({ section, checked, onChange }) {
     );
   }
   return (
-    <label style={{ ...S.checkItem, background: checked ? C.navyMid : C.navyLight }}>
+    <label style={{ ...S.checkItem, background: checked ? T.navyMid : T.navyLight }}>
       <div style={{
         width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-        background: checked ? C.gold : "transparent",
-        border: `2px solid ${checked ? C.gold : C.softGray}`,
+        background: checked ? T.gold : "transparent",
+        border: `2px solid ${checked ? T.gold : T.softGray}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "all 0.15s",
       }}>
-        {checked && <Icon name="check" size={11} color={C.navyDeep} />}
+        {checked && <Icon name="check" size={11} color={T.navyDeep} />}
       </div>
       <span style={S.checkLabel}>{section.label}</span>
       <input
@@ -751,6 +756,8 @@ function SectionCheck({ section, checked, onChange }) {
    Main component
 ───────────────────────────────────────────── */
 export default function PdfExport({ project, onClose }) {
+  const T = useTheme();
+  const S = getStyles(T);
   const [selected, setSelected] = useState(() =>
     Object.fromEntries(SECTIONS.map(s => [s.key, s.def]))
   );
@@ -792,7 +799,7 @@ export default function PdfExport({ project, onClose }) {
         {/* Header */}
         <div style={S.header}>
           <div style={S.headerTitle}>
-            <Icon name="download" size={20} color={C.gold} />
+            <Icon name="download" size={20} color={T.gold} />
             PDF Export
           </div>
           <button
@@ -800,13 +807,13 @@ export default function PdfExport({ project, onClose }) {
             onClick={onClose}
             aria-label="Schließen"
           >
-            <Icon name="plus" size={18} color={C.softGray} style={{ transform: "rotate(45deg)" }} />
+            <Icon name="plus" size={18} color={T.softGray} style={{ transform: "rotate(45deg)" }} />
           </button>
         </div>
 
         {/* Body */}
         <div style={S.body}>
-          <p style={{ fontSize: "12px", color: C.softGray, marginBottom: "4px" }}>
+          <p style={{ fontSize: "12px", color: T.softGray, marginBottom: "4px" }}>
             Wählen Sie die Abschnitte aus, die im PDF enthalten sein sollen.
           </p>
 
@@ -851,7 +858,7 @@ export default function PdfExport({ project, onClose }) {
             onClick={handleGenerate}
             disabled={generating}
           >
-            <Icon name="download" size={16} color={C.navyDeep} />
+            <Icon name="download" size={16} color={T.navyDeep} />
             {generating ? "Wird erstellt…" : "PDF erstellen"}
           </button>
         </div>
