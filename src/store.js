@@ -15,7 +15,7 @@ export function listProjects() {
     const key = localStorage.key(i);
     if (key?.startsWith(PREFIX)) {
       try {
-        projects.push(JSON.parse(localStorage.getItem(key)));
+        projects.push(migrateProject(JSON.parse(localStorage.getItem(key))));
       } catch {
         /* skip corrupt */
       }
@@ -26,10 +26,17 @@ export function listProjects() {
 
 export function getProject(id) {
   try {
-    return JSON.parse(localStorage.getItem(PREFIX + id));
+    const p = JSON.parse(localStorage.getItem(PREFIX + id));
+    return p ? migrateProject(p) : null;
   } catch {
     return null;
   }
+}
+
+/** Migrate old projects to current schema */
+function migrateProject(p) {
+  if (!p.theme) p.theme = { preset: "eckart", customColors: null, font: null, websiteUrl: null };
+  return p;
 }
 
 export function saveProject(project) {

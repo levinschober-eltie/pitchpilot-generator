@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Icon from "./Icons";
-import { THEME_LIST } from "../themes";
+import { THEME_LIST, THEME_PRESETS, resolveTheme } from "../themes";
 import { analyzeWebsiteCI } from "../ciAnalyzer";
 
 const INDUSTRIES = [
@@ -31,9 +31,104 @@ function ThemeSwatch({ theme }) {
   );
 }
 
-export default function CompanyStep({ data, onChange, theme, onThemeChange }) {
+/** Mini preview strip showing how the selected theme looks */
+function ThemePreview({ themeConfig }) {
+  const resolved = useMemo(() => resolveTheme(themeConfig), [themeConfig]);
+
+  return (
+    <div
+      style={{
+        height: 200,
+        borderRadius: 12,
+        overflow: "hidden",
+        background: `linear-gradient(135deg, ${resolved.navyDeep} 0%, ${resolved.navy} 50%, ${resolved.navyLight} 100%)`,
+        padding: "1.25rem 1.5rem",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: "0.7rem",
+        marginBottom: "1.25rem",
+        border: "1px solid var(--border)",
+        position: "relative",
+      }}
+    >
+      <div style={{ fontSize: "0.65rem", color: resolved.midGray, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "-0.3rem" }}>
+        Vorschau
+      </div>
+      <div
+        style={{
+          fontFamily: resolved.font,
+          fontSize: "1.3rem",
+          fontWeight: 700,
+          color: resolved.gold,
+          lineHeight: 1.2,
+        }}
+      >
+        Überschrift Beispieltext
+      </div>
+      <div
+        style={{
+          fontFamily: resolved.fontSerif,
+          fontSize: "0.85rem",
+          color: resolved.warmWhite,
+          opacity: 0.85,
+          lineHeight: 1.5,
+          maxWidth: 380,
+        }}
+      >
+        Dies ist ein Beispiel für Fließtext in der gewählten Stilvorlage.
+      </div>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.2rem" }}>
+        <div
+          style={{
+            padding: "0.35rem 1rem",
+            borderRadius: 6,
+            background: resolved.gold,
+            color: resolved.navyDeep,
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            fontFamily: resolved.font,
+          }}
+        >
+          Button
+        </div>
+        <div
+          style={{
+            padding: "0.35rem 1rem",
+            borderRadius: 6,
+            background: "transparent",
+            border: `1.5px solid ${resolved.gold}`,
+            color: resolved.gold,
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            fontFamily: resolved.font,
+          }}
+        >
+          Sekundär
+        </div>
+      </div>
+      {/* Accent color dot */}
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: resolved.green,
+          opacity: 0.7,
+        }}
+      />
+    </div>
+  );
+}
+
+export default function CompanyStep({ data, onChange, consultant, onConsultantChange, theme, onThemeChange }) {
   const d = data || {};
   const set = (key, value) => onChange({ [key]: value });
+  const con = consultant || {};
+  const setCon = (key, value) => onConsultantChange?.({ ...con, [key]: value });
   const th = theme || { preset: "eckart" };
 
   const [ciUrl, setCiUrl] = useState(th.websiteUrl || "");
@@ -46,17 +141,17 @@ export default function CompanyStep({ data, onChange, theme, onThemeChange }) {
     setCiLoading(true);
     setCiError(null);
     try {
-      const result = await analyzeWebsiteCI(ciUrl);
-      if (result) {
-        setCiResult(result);
+      const { data, error } = await analyzeWebsiteCI(ciUrl);
+      if (data) {
+        setCiResult(data);
         onThemeChange?.({
           preset: "custom",
-          customColors: result,
-          font: result.font,
+          customColors: data,
+          font: data.font,
           websiteUrl: ciUrl.trim(),
         });
       } else {
-        setCiError("Keine Farben gefunden. Versuche einen anderen Stil.");
+        setCiError(error || "Analyse fehlgeschlagen. Bitte URL prüfen.");
       }
     } catch {
       setCiError("Analyse fehlgeschlagen. Bitte URL prüfen.");
@@ -155,6 +250,56 @@ export default function CompanyStep({ data, onChange, theme, onThemeChange }) {
         />
       </div>
 
+      {/* ── Berater / Consultant Section ── */}
+      <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>
+        <h3 style={{ fontSize: "1.1rem", marginBottom: "0.3rem" }}>
+          <Icon name="user" size={18} color="var(--yellow)" /> Berater (optional)
+        </h3>
+        <p style={{ color: "var(--gray-text)", marginBottom: "1rem", fontSize: "0.85rem" }}>
+          Wird auf der Präsentation als Ansprechpartner angezeigt.
+        </p>
+        <div className="grid-2">
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              type="text"
+              value={con.name || ""}
+              onChange={(e) => setCon("name", e.target.value)}
+              placeholder="z.B. Max Mustermann"
+            />
+          </div>
+          <div className="form-group">
+            <label>Firma</label>
+            <input
+              type="text"
+              value={con.company || ""}
+              onChange={(e) => setCon("company", e.target.value)}
+              placeholder="z.B. Elite PV GmbH"
+            />
+          </div>
+        </div>
+        <div className="grid-2">
+          <div className="form-group">
+            <label>E-Mail</label>
+            <input
+              type="email"
+              value={con.email || ""}
+              onChange={(e) => setCon("email", e.target.value)}
+              placeholder="berater@firma.de"
+            />
+          </div>
+          <div className="form-group">
+            <label>Titel / Rolle</label>
+            <input
+              type="text"
+              value={con.label || ""}
+              onChange={(e) => setCon("label", e.target.value)}
+              placeholder="z.B. Energieberater"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* ── Stil & CI Section ── */}
       <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>
         <h3 style={{ fontSize: "1.1rem", marginBottom: "0.3rem" }}>
@@ -213,6 +358,9 @@ export default function CompanyStep({ data, onChange, theme, onThemeChange }) {
             </button>
           )}
         </div>
+
+        {/* Live Theme Preview */}
+        <ThemePreview themeConfig={th} />
 
         {/* Website CI Analysis */}
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end" }}>

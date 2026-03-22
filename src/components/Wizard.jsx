@@ -102,6 +102,8 @@ export default function Wizard() {
         <CompanyStep
           data={project.company}
           onChange={(d) => update("company", d)}
+          consultant={project.consultant}
+          onConsultantChange={(c) => updateFull("consultant", c)}
           theme={project.theme}
           onThemeChange={(t) => updateFull("theme", t)}
         />

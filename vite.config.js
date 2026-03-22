@@ -1,9 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+const base = isGitHubPages ? "/pitchpilot-generator/" : "/";
+
 export default defineConfig({
   plugins: [react()],
-  base: "/pitchpilot-generator/",
+  base,
   build: {
     sourcemap: "hidden",
     target: "es2020",

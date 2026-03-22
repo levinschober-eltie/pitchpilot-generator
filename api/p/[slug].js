@@ -2,6 +2,8 @@
  * GET /api/p/:slug — Load share data and record a view event.
  * Returns the compressed payload for the client to decompress.
  * Tracks: timestamp, user-agent, IP hash (privacy-safe), viewport.
+ *
+ * No rate limit — view tracking should work freely.
  */
 import { kv } from "@vercel/kv";
 import { createHash } from "crypto";
@@ -27,7 +29,9 @@ export default async function handler(req, res) {
 
   try {
     const { slug } = req.query;
-    if (!slug) return res.status(400).json({ error: "Missing slug" });
+    if (!slug || typeof slug !== "string" || slug.length > 100 || !/^[a-z0-9-]+$/.test(slug)) {
+      return res.status(400).json({ error: "Invalid slug" });
+    }
 
     const raw = await kv.get(`share:${slug}`);
     if (!raw) return res.status(404).json({ error: "Link not found or expired" });

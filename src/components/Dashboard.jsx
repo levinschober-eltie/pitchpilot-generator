@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { listProjects, deleteProject, duplicateProject, seedDemoProjects, createNamedShareLink, fetchShareStats } from "../store";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import Icon from "./Icons";
 
 export default function Dashboard() {
@@ -10,32 +10,39 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  const refresh = () => setProjects(listProjects());
+  const refresh = useCallback(() => setProjects(listProjects()), []);
 
   useEffect(() => {
     seedDemoProjects();
     const t = setTimeout(refresh, 100);
     return () => clearTimeout(t);
-  }, []);
+  }, [refresh]);
 
-  const handleDelete = (e, id) => {
+  const handleDelete = useCallback((e, id) => {
     e.stopPropagation();
     if (confirm("Projekt wirklich löschen?")) {
+      // Optimistic update: remove from state immediately
+      setProjects(prev => prev.filter(p => p.id !== id));
       deleteProject(id);
+    }
+  }, []);
+
+  const handleDuplicate = useCallback((e, id) => {
+    e.stopPropagation();
+    const copy = duplicateProject(id);
+    if (copy) {
+      // Optimistic update: add copy to state immediately
+      setProjects(prev => [...prev, copy]);
+    } else {
+      // Fallback: full refresh if duplicate returned null
       refresh();
     }
-  };
-
-  const handleDuplicate = (e, id) => {
-    e.stopPropagation();
-    duplicateProject(id);
-    refresh();
-  };
+  }, [refresh]);
 
   const [copiedId, setCopiedId] = useState(null);
   const [shareLoading, setShareLoading] = useState(null);
 
-  const handleShare = async (e, project) => {
+  const handleShare = useCallback(async (e, project) => {
     e.stopPropagation();
     setShareLoading(project.id);
     try {
@@ -47,9 +54,9 @@ export default function Dashboard() {
       }
     } catch { /* silent */ }
     setShareLoading(null);
-  };
+  }, []);
 
-  const handleOpenStats = async (e, projectId) => {
+  const handleOpenStats = useCallback(async (e, projectId) => {
     e.stopPropagation();
     if (statsOpen === projectId) {
       setStatsOpen(null);
@@ -64,7 +71,7 @@ export default function Dashboard() {
       setStats({ shares: [] });
     }
     setStatsLoading(false);
-  };
+  }, [statsOpen]);
 
   if (projects.length === 0) {
     return (
@@ -92,62 +99,17 @@ export default function Dashboard() {
       <div className="grid-3">
         {projects.map((p) => (
           <div key={p.id}>
-            <div
-              className="card card-hover project-card"
-              onClick={() => navigate(p.generated ? `/present/${p.id}` : `/edit/${p.id}`)}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <h3 style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>
-                    {p.company?.name || p.name || "Unbenannt"}
-                  </h3>
-                  <div className="project-meta">
-                    {p.company?.city && <span>{p.company.city} · </span>}
-                    {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
-                    {p.generated && (
-                      p.generatedAt && p.updatedAt > p.generatedAt + 5000
-                        ? <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", animation: "pulse 2s ease-in-out infinite" }}>Veraltet</span>
-                        : <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>Generiert</span>
-                    )}
-                    {p.versions?.length > 0 && <span style={{ color: "var(--cyan)", marginLeft: "0.5rem" }}>{p.versions.length} V.</span>}
-                    {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: "0.25rem" }}>
-                  <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/edit/${p.id}`); }} title="Bearbeiten" aria-label="Bearbeiten">
-                    <Icon name="settings" size={12} />
-                  </button>
-                  <button
-                    className={`btn ${copiedId === p.id ? "btn-primary" : "btn-secondary"} btn-sm`}
-                    onClick={(e) => handleShare(e, p)}
-                    title={copiedId === p.id ? "Link kopiert!" : "Link erstellen & teilen"}
-                    aria-label="Teilen"
-                    disabled={shareLoading === p.id}
-                  >
-                    {shareLoading === p.id ? (
-                      <span className="spinner" style={{ width: 12, height: 12, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "var(--yellow)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                    ) : (
-                      <Icon name={copiedId === p.id ? "check" : "eye"} size={12} />
-                    )}
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={(e) => handleOpenStats(e, p.id)} title="Statistiken" aria-label="Statistiken"
-                    style={statsOpen === p.id ? { background: "var(--yellow)", color: "var(--black)" } : undefined}>
-                    <Icon name="chart" size={12} />
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={(e) => handleDuplicate(e, p.id)} title="Duplizieren" aria-label="Duplizieren">
-                    <Icon name="copy" size={12} />
-                  </button>
-                  <button className="btn btn-danger btn-sm" onClick={(e) => handleDelete(e, p.id)} title="Löschen" aria-label="Löschen">
-                    <Icon name="trash" size={12} />
-                  </button>
-                </div>
-              </div>
-              {p.updatedAt && (
-                <div className="project-meta" style={{ marginTop: "0.75rem", fontSize: "0.7rem" }}>
-                  Zuletzt: {new Date(p.updatedAt).toLocaleDateString("de-DE")}
-                </div>
-              )}
-            </div>
+            <ProjectCard
+              project={p}
+              copiedId={copiedId}
+              shareLoading={shareLoading}
+              statsOpen={statsOpen}
+              onNavigate={navigate}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onShare={handleShare}
+              onOpenStats={handleOpenStats}
+            />
 
             {/* Analytics Panel */}
             {statsOpen === p.id && (
@@ -159,6 +121,67 @@ export default function Dashboard() {
     </div>
   );
 }
+
+const ProjectCard = memo(function ProjectCard({ project: p, copiedId, shareLoading, statsOpen, onNavigate, onDelete, onDuplicate, onShare, onOpenStats }) {
+  return (
+    <div
+      className="card card-hover project-card"
+      onClick={() => onNavigate(p.generated ? `/present/${p.id}` : `/edit/${p.id}`)}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h3 style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>
+            {p.company?.name || p.name || "Unbenannt"}
+          </h3>
+          <div className="project-meta">
+            {p.company?.city && <span>{p.company.city} · </span>}
+            {p.phases?.filter(ph => ph.enabled).length || 0} Phasen
+            {p.generated && (
+              p.generatedAt && p.updatedAt > p.generatedAt + 5000
+                ? <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", animation: "pulse 2s ease-in-out infinite" }}>Veraltet</span>
+                : <span style={{ color: "var(--green-light)", marginLeft: "0.5rem" }}>Generiert</span>
+            )}
+            {p.versions?.length > 0 && <span style={{ color: "var(--cyan)", marginLeft: "0.5rem" }}>{p.versions.length} V.</span>}
+            {p.id?.startsWith("demo_") && <span style={{ color: "var(--yellow)", marginLeft: "0.5rem", fontSize: "0.65rem", fontWeight: 600 }}>DEMO</span>}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "0.25rem" }}>
+          <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); onNavigate(`/edit/${p.id}`); }} title="Bearbeiten" aria-label="Bearbeiten">
+            <Icon name="settings" size={12} />
+          </button>
+          <button
+            className={`btn ${copiedId === p.id ? "btn-primary" : "btn-secondary"} btn-sm`}
+            onClick={(e) => onShare(e, p)}
+            title={copiedId === p.id ? "Link kopiert!" : "Link erstellen & teilen"}
+            aria-label="Teilen"
+            disabled={shareLoading === p.id}
+          >
+            {shareLoading === p.id ? (
+              <span className="spinner" style={{ width: 12, height: 12, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "var(--yellow)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            ) : (
+              <Icon name={copiedId === p.id ? "check" : "eye"} size={12} />
+            )}
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={(e) => onOpenStats(e, p.id)} title="Statistiken" aria-label="Statistiken"
+            style={statsOpen === p.id ? { background: "var(--yellow)", color: "var(--black)" } : undefined}>
+            <Icon name="chart" size={12} />
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={(e) => onDuplicate(e, p.id)} title="Duplizieren" aria-label="Duplizieren">
+            <Icon name="copy" size={12} />
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={(e) => onDelete(e, p.id)} title="Löschen" aria-label="Löschen">
+            <Icon name="trash" size={12} />
+          </button>
+        </div>
+      </div>
+      {p.updatedAt && (
+        <div className="project-meta" style={{ marginTop: "0.75rem", fontSize: "0.7rem" }}>
+          Zuletzt: {new Date(p.updatedAt).toLocaleDateString("de-DE")}
+        </div>
+      )}
+    </div>
+  );
+});
 
 function ShareAnalytics({ stats, loading, projectName }) {
   if (loading) {

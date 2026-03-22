@@ -5,7 +5,8 @@
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { B, C } from "../colors";
+import { B } from "../colors";
+import { useTheme } from "../ThemeContext";
 import Icon from "./Icons";
 import { fmtEuro, fmtNum } from "../calcEngine";
 
@@ -431,10 +432,10 @@ const CH = VB_H - PAD.t - PAD.b;
 function scaleY(val, max) { return CH - (val / (max || 1)) * CH; }
 
 /* Chart theme palettes */
-const CHART_DARK = {
-  grid: C.navyLight, greenLight: C.greenLight, blue: "#29ABE2", gold: C.gold,
-  softGray: C.softGray, warmWhite: C.warmWhite, red: C.red,
-};
+const mkChartDark = (T) => ({
+  grid: T.navyLight, greenLight: T.greenLight, blue: "#29ABE2", gold: T.gold,
+  softGray: T.softGray, warmWhite: T.warmWhite, red: T.red,
+});
 const CHART_LIGHT = {
   grid: "rgba(0,0,0,0.1)", greenLight: B.greenLight, blue: B.cyan, gold: B.yellowDim,
   softGray: B.grayText, warmWhite: B.black, red: B.red,
@@ -652,7 +653,7 @@ function ChartBessSoc({ socData, bessKWh, theme = CHART_DARK }) {
 /* ─────────────────────────────────────────────
    Styles helper
 ───────────────────────────────────────────── */
-const S = {
+const mkStyles = (T) => ({
   overlay: {
     position: "fixed", inset: 0, zIndex: 9000,
     background: "rgba(15,26,46,0.85)", backdropFilter: "blur(6px)",
@@ -660,62 +661,62 @@ const S = {
     overflowY: "auto", padding: "2rem 1rem",
   },
   modal: {
-    background: C.navyDeep, borderRadius: "12px", width: "100%", maxWidth: "900px",
-    border: `1px solid ${C.navyLight}`, boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+    background: T.navyDeep, borderRadius: "12px", width: "100%", maxWidth: "900px",
+    border: `1px solid ${T.navyLight}`, boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
     position: "relative",
   },
   header: {
-    background: `linear-gradient(135deg, ${C.gold} 0%, ${C.goldDim} 100%)`,
+    background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldDim} 100%)`,
     borderRadius: "12px 12px 0 0", padding: "1.25rem 1.5rem",
     display: "flex", alignItems: "center", justifyContent: "space-between",
   },
   closeBtn: {
     background: "rgba(0,0,0,0.2)", border: "none", borderRadius: "50%",
     width: 44, height: 44, cursor: "pointer", display: "flex",
-    alignItems: "center", justifyContent: "center", color: C.navyDeep,
+    alignItems: "center", justifyContent: "center", color: T.navyDeep,
     flexShrink: 0,
   },
   body: { padding: "1.5rem" },
   section: {
-    background: C.navy, borderRadius: "8px", padding: "1.25rem",
-    marginBottom: "1rem", border: `1px solid ${C.navyLight}`,
+    background: T.navy, borderRadius: "8px", padding: "1.25rem",
+    marginBottom: "1rem", border: `1px solid ${T.navyLight}`,
   },
   sectionTitle: {
-    fontFamily: "Georgia, serif", fontSize: "1rem", color: C.gold,
+    fontFamily: "Georgia, serif", fontSize: "1rem", color: T.gold,
     marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem",
   },
   label: {
-    fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: C.softGray,
+    fontFamily: "Calibri, sans-serif", fontSize: "0.8rem", color: T.softGray,
     marginBottom: "0.25rem", display: "block",
   },
   input: {
-    background: C.navyMid, border: `1px solid ${C.navyLight}`, borderRadius: "6px",
-    padding: "0.4rem 0.6rem", color: C.warmWhite, fontFamily: "Calibri, sans-serif",
+    background: T.navyMid, border: `1px solid ${T.navyLight}`, borderRadius: "6px",
+    padding: "0.4rem 0.6rem", color: T.warmWhite, fontFamily: "Calibri, sans-serif",
     fontSize: "0.875rem", width: "100%", outline: "none",
   },
   select: {
-    background: C.navyMid, border: `1px solid ${C.navyLight}`, borderRadius: "6px",
-    padding: "0.4rem 0.6rem", color: C.warmWhite, fontFamily: "Calibri, sans-serif",
+    background: T.navyMid, border: `1px solid ${T.navyLight}`, borderRadius: "6px",
+    padding: "0.4rem 0.6rem", color: T.warmWhite, fontFamily: "Calibri, sans-serif",
     fontSize: "0.875rem", width: "100%", outline: "none",
   },
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" },
   grid4: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" },
   kpiCard: {
-    background: C.navyMid, borderRadius: "8px", padding: "0.875rem",
-    border: `1px solid ${C.navyLight}`, textAlign: "center",
+    background: T.navyMid, borderRadius: "8px", padding: "0.875rem",
+    border: `1px solid ${T.navyLight}`, textAlign: "center",
   },
   kpiValue: {
-    fontFamily: "Georgia, serif", fontSize: "1.3rem", color: C.gold,
+    fontFamily: "Georgia, serif", fontSize: "1.3rem", color: T.gold,
     marginBottom: "0.2rem",
   },
   kpiLabel: {
-    fontFamily: "Calibri, sans-serif", fontSize: "0.72rem", color: C.softGray,
+    fontFamily: "Calibri, sans-serif", fontSize: "0.72rem", color: T.softGray,
   },
   seasonBtn: (active) => ({
     fontFamily: "Calibri, sans-serif", fontSize: "0.8rem",
-    background: active ? C.gold : C.navyMid,
-    color: active ? C.navyDeep : C.softGray,
-    border: `1px solid ${active ? C.gold : C.navyLight}`,
+    background: active ? T.gold : T.navyMid,
+    color: active ? T.navyDeep : T.softGray,
+    border: `1px solid ${active ? T.gold : T.navyLight}`,
     borderRadius: "6px", padding: "0.35rem 0.85rem",
     cursor: "pointer", fontWeight: active ? "600" : "normal",
     transition: "all 0.15s",
@@ -725,41 +726,45 @@ const S = {
     gap: "0.5rem", alignItems: "end", marginBottom: "0.5rem",
   },
   addBtn: {
-    background: "transparent", border: `1px dashed ${C.gold}`,
+    background: "transparent", border: `1px dashed ${T.gold}`,
     borderRadius: "6px", padding: "0.4rem 0.75rem",
-    color: C.gold, fontFamily: "Calibri, sans-serif", fontSize: "0.8rem",
+    color: T.gold, fontFamily: "Calibri, sans-serif", fontSize: "0.8rem",
     cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem",
     marginTop: "0.5rem",
   },
   removeBtn: {
-    background: "transparent", border: `1px solid ${C.red}30`,
+    background: "transparent", border: `1px solid ${T.red}30`,
     borderRadius: "50%", width: 32, height: 32,
-    color: C.red, cursor: "pointer", display: "flex",
+    color: T.red, cursor: "pointer", display: "flex",
     alignItems: "center", justifyContent: "center",
   },
   loadingBox: {
     display: "flex", alignItems: "center", gap: "0.75rem",
-    padding: "0.75rem", background: C.navyMid, borderRadius: "8px",
-    color: C.softGray, fontFamily: "Calibri, sans-serif", fontSize: "0.85rem",
+    padding: "0.75rem", background: T.navyMid, borderRadius: "8px",
+    color: T.softGray, fontFamily: "Calibri, sans-serif", fontSize: "0.85rem",
   },
   errorBox: {
-    padding: "0.75rem", background: `${C.red}18`, borderRadius: "8px",
-    border: `1px solid ${C.red}40`, color: C.red,
+    padding: "0.75rem", background: `${T.red}18`, borderRadius: "8px",
+    border: `1px solid ${T.red}40`, color: T.red,
     fontFamily: "Calibri, sans-serif", fontSize: "0.82rem",
   },
   chartTitle: {
-    fontFamily: "Calibri, sans-serif", fontSize: "0.82rem", color: C.softGray,
+    fontFamily: "Calibri, sans-serif", fontSize: "0.82rem", color: T.softGray,
     marginBottom: "0.5rem",
   },
   divider: {
-    borderColor: C.navyLight, margin: "1rem 0",
+    borderColor: T.navyLight, margin: "1rem 0",
   },
-};
+});
 
 /* ─────────────────────────────────────────────
    Main Component
 ───────────────────────────────────────────── */
 export default function MarketAnalysis({ project, onClose, inline, onResults }) {
+  const T = useTheme();
+  const S = useMemo(() => mkStyles(T), [T]);
+  const CHART_DARK = useMemo(() => mkChartDark(T), [T]);
+
   const e = project?.energy || {};
   const pc = project?.phaseConfig || {};
   const pvConf = pc.pv || {};
@@ -1039,21 +1044,21 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
     errorBox: S.errorBox,
     chartTitle: S.chartTitle,
     divider: S.divider,
-    accentColor: C.gold,
-    iconColor: C.gold,
-    totalColor: C.warmWhite,
-    totalAccent: C.gold,
-    tableLabel: C.softGray,
-    tableValue: C.warmWhite,
-    tableAccent: C.gold,
-    subHeadColor: C.warmWhite,
-    sourcesBg: C.navyMid,
-    sourceLabel: C.warmWhite,
-    sourceText: C.softGray,
-    spinnerColor: C.gold,
-    greenAccent: C.greenLight,
-    goldAccent: C.gold,
-    softGray: C.softGray,
+    accentColor: T.gold,
+    iconColor: T.gold,
+    totalColor: T.warmWhite,
+    totalAccent: T.gold,
+    tableLabel: T.softGray,
+    tableValue: T.warmWhite,
+    tableAccent: T.gold,
+    subHeadColor: T.warmWhite,
+    sourcesBg: T.navyMid,
+    sourceLabel: T.warmWhite,
+    sourceText: T.softGray,
+    spinnerColor: T.gold,
+    greenAccent: T.greenLight,
+    goldAccent: T.gold,
+    softGray: T.softGray,
     seasonBtn: S.seasonBtn,
     arrayRow: S.arrayRow,
   };
@@ -1080,18 +1085,18 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   ) : (
     <div style={S.header}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <Icon name="chart" size={22} color={C.navyDeep} />
+        <Icon name="chart" size={22} color={T.navyDeep} />
         <div>
-          <h2 style={{ fontFamily: "Georgia, serif", fontSize: "1.2rem", color: C.navyDeep, margin: 0 }}>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: "1.2rem", color: T.navyDeep, margin: 0 }}>
             Marktanalyse
           </h2>
-          <p style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.78rem", color: C.navyDeep, margin: 0, opacity: 0.7 }}>
+          <p style={{ fontFamily: "Calibri, sans-serif", fontSize: "0.78rem", color: T.navyDeep, margin: 0, opacity: 0.7 }}>
             Energiemarkt · Direktvermarktung · BESS-Optimierung
           </p>
         </div>
       </div>
       <button style={S.closeBtn} onClick={onClose} aria-label="Schließen">
-        <Icon name="arrowLeft" size={18} color={C.navyDeep} />
+        <Icon name="arrowLeft" size={18} color={T.navyDeep} />
       </button>
     </div>
   );
@@ -1117,8 +1122,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                 </div>
               )}
               {!solarLoading && !solarData && !solarError && (
-                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${isLight ? "var(--gray-mid)" : C.softGray}` }}>
-                  <Icon name="sun" size={14} color={isLight ? B.grayText : C.softGray} />
+                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${isLight ? "var(--gray-mid)" : T.softGray}` }}>
+                  <Icon name="sun" size={14} color={isLight ? B.grayText : T.softGray} />
                   Parametrisches Modell aktiv
                 </div>
               )}
@@ -1139,8 +1144,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                 </div>
               )}
               {!priceLoading && !priceData && !priceError && (
-                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${isLight ? "var(--gray-mid)" : C.softGray}` }}>
-                  <Icon name="money" size={14} color={isLight ? B.grayText : C.softGray} />
+                <div style={{ ...TS.loadingBox, borderLeft: `3px solid ${isLight ? "var(--gray-mid)" : T.softGray}` }}>
+                  <Icon name="money" size={14} color={isLight ? B.grayText : T.softGray} />
                   Parametrischer Preisindex aktiv
                 </div>
               )}
@@ -1199,7 +1204,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                   </button>
                 ) : (
                   <button style={S.removeBtn} onClick={() => removeArray(arr.id)} aria-label="Array entfernen" title="Entfernen">
-                    <Icon name="trash" size={13} color={C.red} />
+                    <Icon name="trash" size={13} color={T.red} />
                   </button>
                 )}
               </div>
@@ -1210,7 +1215,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
               </button>
             ) : (
               <button style={S.addBtn} onClick={addArray}>
-                <Icon name="plus" size={13} color={C.gold} />
+                <Icon name="plus" size={13} color={T.gold} />
                 Array hinzufügen
               </button>
             )}
@@ -1221,10 +1226,10 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
                 </button>
               ) : (
                 <button
-                  style={{ ...S.addBtn, borderStyle: "solid", background: C.navyMid }}
+                  style={{ ...S.addBtn, borderStyle: "solid", background: T.navyMid }}
                   onClick={() => { fetchSolar(); }}
                 >
-                  <Icon name="sun" size={13} color={C.gold} />
+                  <Icon name="sun" size={13} color={T.gold} />
                   Solardaten neu laden
                 </button>
               )}
@@ -1238,15 +1243,15 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
               Parameter
             </div>
             {/* Read-only project data summary */}
-            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1rem", padding: "0.75rem", background: isLight ? "var(--gray-light)" : C.navyMid, borderRadius: "6px", fontSize: "0.82rem" }}>
-              <span style={{ color: isLight ? "var(--gray-text)" : C.softGray }}>
-                <strong style={{ color: isLight ? "var(--black)" : C.warmWhite }}>Standort:</strong> {lat.toFixed(1)}°N, {lon.toFixed(1)}°E
+            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1rem", padding: "0.75rem", background: isLight ? "var(--gray-light)" : T.navyMid, borderRadius: "6px", fontSize: "0.82rem" }}>
+              <span style={{ color: isLight ? "var(--gray-text)" : T.softGray }}>
+                <strong style={{ color: isLight ? "var(--black)" : T.warmWhite }}>Standort:</strong> {lat.toFixed(1)}°N, {lon.toFixed(1)}°E
               </span>
-              <span style={{ color: isLight ? "var(--gray-text)" : C.softGray }}>
-                <strong style={{ color: isLight ? "var(--black)" : C.warmWhite }}>Verbrauch:</strong> {Number(annualLoadMWh).toLocaleString("de-DE")} MWh/a
+              <span style={{ color: isLight ? "var(--gray-text)" : T.softGray }}>
+                <strong style={{ color: isLight ? "var(--black)" : T.warmWhite }}>Verbrauch:</strong> {Number(annualLoadMWh).toLocaleString("de-DE")} MWh/a
               </span>
-              <span style={{ color: isLight ? "var(--gray-text)" : C.softGray }}>
-                <strong style={{ color: isLight ? "var(--black)" : C.warmWhite }}>Strompreis:</strong> {fixedPriceCt} ct/kWh
+              <span style={{ color: isLight ? "var(--gray-text)" : T.softGray }}>
+                <strong style={{ color: isLight ? "var(--black)" : T.warmWhite }}>Strompreis:</strong> {fixedPriceCt} ct/kWh
               </span>
             </div>
 
@@ -1465,7 +1470,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
           </Sec>
 
           {/* ── Datenquellen ── */}
-          <Sec style={isLight ? { background: "var(--white)", fontSize: "0.75rem", color: "var(--gray-text)" } : { background: C.navyMid, fontSize: "0.75rem", fontFamily: "Calibri, sans-serif", color: C.softGray }}>
+          <Sec style={isLight ? { background: "var(--white)", fontSize: "0.75rem", color: "var(--gray-text)" } : { background: T.navyMid, fontSize: "0.75rem", fontFamily: "Calibri, sans-serif", color: T.softGray }}>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <span><strong style={{ color: TS.sourceLabel }}>Solardaten:</strong> {solarSource}</span>
               <span><strong style={{ color: TS.sourceLabel }}>Spotpreise:</strong> {priceSource}</span>

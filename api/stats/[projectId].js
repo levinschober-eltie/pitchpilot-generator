@@ -1,8 +1,44 @@
 /**
  * GET /api/stats/:projectId — Return view analytics for all share links of a project.
  * Returns: { shares: [{ slug, companyName, createdAt, totalViews, uniqueDevices, lastView, recentViews }] }
+ *
+ * Rate limit: 30 requests per minute per IP (in-memory, resets on cold start)
  */
 import { kv } from "@vercel/kv";
+
+// --- Rate limiting (Map-based, per serverless instance) ---
+const rateLimitMap = new Map();
+const RATE_LIMIT = 30;
+const RATE_WINDOW_MS = 60 * 1000;
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const key = ip || "unknown";
+  let entry = rateLimitMap.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateLimitMap.set(key, entry);
+  }
+
+  entry.count++;
+  const remaining = Math.max(0, RATE_LIMIT - entry.count);
+
+  return { allowed: entry.count <= RATE_LIMIT, remaining, limit: RATE_LIMIT };
+}
+
+// Cleanup stale entries periodically to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 60 * 1000);
+
+/** Validate projectId format (alphanumeric, dashes, underscores, max 64 chars) */
+function isValidProjectId(id) {
+  return typeof id === "string" && id.length > 0 && id.length <= 64 && /^[a-zA-Z0-9_-]+$/.test(id);
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -10,9 +46,24 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
+  // Rate limiting
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+  const rateResult = checkRateLimit(ip);
+  res.setHeader("X-RateLimit-Limit", String(rateResult.limit));
+  res.setHeader("X-RateLimit-Remaining", String(rateResult.remaining));
+
+  if (!rateResult.allowed) {
+    return res.status(429).json({ error: "Rate limit exceeded. Max 30 requests per minute." });
+  }
+
   try {
     const { projectId } = req.query;
     if (!projectId) return res.status(400).json({ error: "Missing projectId" });
+
+    // Validate projectId format
+    if (!isValidProjectId(projectId)) {
+      return res.status(400).json({ error: "Invalid projectId format" });
+    }
 
     // Get all share slugs for this project
     const raw = await kv.get(`project_shares:${projectId}`);
