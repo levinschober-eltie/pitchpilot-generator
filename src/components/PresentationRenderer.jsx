@@ -2,9 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, useTransition, lazy,
 import { useParams, useNavigate } from "react-router-dom";
 import { getProject, saveProject, createVersion, renameVersion, deleteVersion, restoreVersion, createNamedShareLink } from "../store";
 import { calculateAll, project20Years, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
-import { C } from "../colors";
 import { ThemeProvider, useTheme } from "../ThemeContext";
-import { resolveTheme } from "../themes";
 import Icon from "./Icons";
 import { useFocusTrap } from "../useFocusTrap";
 import { getVal, setVal } from "../utils";
@@ -36,7 +34,6 @@ const INVEST_MAP = {
   waerme: "investPhase4", ladeinfra: "investPhase5", bess: "investPhase6",
 };
 
-/* getVal/setVal imported from ../utils, CONFIG_GROUPS from ../sliderConfig */
 
 /* ── Independence Score Ring (Eckart-Style, 130px, animated count) ── */
 function ScoreRing({ score, color, label, size = 130 }) {

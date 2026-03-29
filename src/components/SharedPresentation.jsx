@@ -44,7 +44,6 @@ function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
   );
 }
 
-/* getVal/setVal imported from ../utils, CONFIG_GROUPS from ../sliderConfig */
 
 export default function SharedPresentation() {
   const [searchParams] = useSearchParams();

@@ -59,14 +59,3 @@ export const C = {
   red: "#E74C3C",
 };
 
-/** Default brand palette — overridable per project */
-export const defaultBrand = {
-  primary: B.yellow,
-  primaryLight: B.yellowLight,
-  secondary: B.black,
-  accent: B.cyan,
-  bg: B.white,
-  bgCard: B.offWhite,
-  text: B.black,
-  textMuted: B.grayText,
-};

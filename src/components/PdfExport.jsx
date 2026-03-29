@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { calculateAll, project20Years, fmtEuro, fmtNum, getPhaseCalcItems, getDynamicHeroCards } from "../calcEngine";
-import { C } from "../colors";
 import { useTheme } from "../ThemeContext";
 import Icon from "./Icons";
 import { useFocusTrap } from "../useFocusTrap";

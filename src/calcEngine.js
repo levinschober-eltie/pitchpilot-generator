@@ -3,11 +3,53 @@
  * Full Eckart-level calculations with NaN guards, 20-year projection, Tilgungsplan.
  */
 
-const PV_YIELD = 950; // kWh/kWp/a (Bavaria average)
-const CO2_GRID = 0.382; // t CO₂/MWh (DE grid mix 2024)
-const CO2_GAS = 0.201; // t CO₂/MWh
-const CO2_DIESEL = 2.65; // kg CO₂/l
-const EEG_TARIFF = 0.075; // €/kWh
+/* ── Physical / Market Constants ── */
+const PV_YIELD = 950;          // kWh/kWp/a (Bavaria average)
+const CO2_GRID = 0.382;        // t CO₂/MWh (DE grid mix 2024)
+const CO2_GAS = 0.201;         // t CO₂/MWh
+const CO2_DIESEL = 2.65;       // kg CO₂/l
+const EEG_TARIFF = 0.075;      // €/kWh
+const ETS_PRICE = 60;          // €/t CO₂ (EU ETS ~2024)
+
+/* ── Heat Pump ── */
+const HP_ANNUAL_HOURS = 2200;   // Volllaststunden/a (Industrie-WP, DE)
+
+/* ── Mobility: Fuel & Energy Consumption ── */
+const PKW_DIESEL_L_PER_KM = 0.07;    // l/km (∅ Diesel-PKW)
+const PKW_STROM_MWH_PER_KM = 0.0002; // MWh/km (∅ E-PKW, ~20 kWh/100 km)
+const LKW_DIESEL_L_PER_KM = 0.32;    // l/km (∅ Diesel-LKW)
+const LKW_STROM_MWH_PER_KM = 0.0012; // MWh/km (∅ E-LKW, ~120 kWh/100 km)
+
+/* ── BESS (Grid-Scale Battery) ── */
+const BESS_DURATION_H = 2;            // Stunden (2h-System)
+const BESS_REVENUE_PER_MWH = 42500;   // €/MWh/a (Arbitrage + FCR)
+
+/* ── Investment Cost Assumptions (€/unit) ── */
+const INVEST_ANALYSE = 65000;                  // Pauschal Phase I
+const PV_COST_ROOF_PER_MWP = 650000;           // €/MWp Dach
+const PV_COST_FACADE_PER_MWP = 650000;         // €/MWp Fassade
+const PV_COST_CARPORT_PER_MWP = 1200000;       // €/MWp Carport
+const PV_COST_GROUND_PER_MWP = 550000;         // €/MWp Freifläche
+const BESS_SITE_PER_MWH = 187000;              // €/MWh Standort-BESS
+const BESS_SITE_EMS = 185000;                  // € EMS-Integration (fix)
+const HP_COST_PER_MW = 400000;                 // €/MW Wärmepumpe
+const HP_INSTALL_BASE = 1000000;               // € Basis-Installation
+const BUFFER_COST_PER_M3 = 600;               // €/m³ Pufferspeicher
+const HEAT_NETWORK_COST = 800000;              // € Wärmenetz + Dämmung
+const WALLBOX_PER_UNIT = 2500;                 // €/Stk AC-Wallbox
+const CHARGE_HUB_AC = 75000;                   // € pro 12-er AC-Hub
+const CHARGE_DC_PER_UNIT = 200000;             // €/Stk DC/HPC-Lader
+const CHARGE_INFRA_BASE = 350000;              // € Lastmanagement + Netz
+const BESS_GRID_PER_MWH = 175000;             // €/MWh Graustrom-BESS
+const BESS_GRID_CONNECTION = 6500000;          // € Netzanschluss + Trafo
+
+/* ── 20-Year Projection Factors ── */
+const PV_DEGRADATION_RATE = 0.995;     // Jährliche PV-Leistungserhaltung (0,5 % Degradation)
+const PRICE_ESCALATION_RATE = 1.02;    // Jährliche Strompreissteigerung (+2 %)
+const GAS_ESCALATION_RATE = 1.025;     // Jährliche Gaspreissteigerung (+2,5 %)
+const BESS_ESCALATION_RATE = 1.01;     // Jährliche BESS-Erlössteigerung (+1 %)
+const MAINT_RATE_SITE = 0.015;         // Wartungskostenquote Standort (1,5 %)
+const MAINT_RATE_BESS = 0.008;         // Wartungskostenquote BESS (0,8 %)
 
 export function calculateAll(project) {
   const e = project.energy || {};
@@ -71,7 +113,7 @@ export function calculateAll(project) {
   const wConf = pc.waerme || {};
   const wpLeistung = wConf.wpLeistung ?? 0;
   const pufferspeicher = wConf.pufferspeicher ?? 0;
-  const wpErzeugung = Math.round(wpLeistung * 2200); // MWh therm/a
+  const wpErzeugung = Math.round(wpLeistung * HP_ANNUAL_HOURS);
   const gasErsatzRate = gasverbrauch > 0 ? Math.round(Math.max(0, Math.min(85, (wpErzeugung / gasverbrauch) * 100))) : 0;
   const gasEinsparung = Math.round(gasverbrauch * (gasErsatzRate / 100) * gaspreis * 10);
 
@@ -80,23 +122,23 @@ export function calculateAll(project) {
   const anzahlLKW = mob.anzahlLKW ?? 0;
   const kmPKW = mob.kmPKW ?? 15000;
   const kmLKW = mob.kmLKW ?? 60000;
-  const pkwDieselL = anzahlPKW * kmPKW * 0.07;
+  const pkwDieselL = anzahlPKW * kmPKW * PKW_DIESEL_L_PER_KM;
   const pkwDieselKosten = pkwDieselL * dieselpreis;
-  const pkwStromKosten = anzahlPKW * kmPKW * 0.0002 * strompreis * 10;
+  const pkwStromKosten = anzahlPKW * kmPKW * PKW_STROM_MWH_PER_KM * strompreis * 10;
   const pkwEinsparung = Math.max(0, Math.round(pkwDieselKosten - pkwStromKosten));
 
   /* ── Mobility LKW ── */
-  const lkwDieselL = anzahlLKW * kmLKW * 0.32;
+  const lkwDieselL = anzahlLKW * kmLKW * LKW_DIESEL_L_PER_KM;
   const lkwDieselKosten = lkwDieselL * dieselpreis;
-  const lkwStromKosten = anzahlLKW * kmLKW * 0.0012 * strompreis * 10;
+  const lkwStromKosten = anzahlLKW * kmLKW * LKW_STROM_MWH_PER_KM * strompreis * 10;
   const lkwEinsparung = Math.max(0, Math.round(lkwDieselKosten - lkwStromKosten));
   const mobilitaetEinsparung = pkwEinsparung + lkwEinsparung;
 
   /* ── Graustrom-BESS ── */
   const bConf = pc.bess || {};
   const graustromBESS = bConf.kapazitaet ?? 0;
-  const bessLeistung = graustromBESS / 2; // MW (2h system)
-  const bessErloes = Math.round(graustromBESS * 42500); // €/a
+  const bessLeistung = graustromBESS / BESS_DURATION_H;
+  const bessErloes = Math.round(graustromBESS * BESS_REVENUE_PER_MWH);
 
   /* ── CO₂ ── */
   const co2Strom = Math.round(eigenverbrauch * CO2_GRID);
@@ -104,31 +146,31 @@ export function calculateAll(project) {
   const co2PKW = Math.round(pkwDieselL * CO2_DIESEL / 1000);
   const co2LKW = Math.round(lkwDieselL * CO2_DIESEL / 1000);
   const co2Gesamt = co2Strom + co2Waerme + co2PKW + co2LKW;
-  const co2Kosten = Math.round(co2Gesamt * 60); // €/a (ETS ~60 €/t)
+  const co2Kosten = Math.round(co2Gesamt * ETS_PRICE);
 
   /* ── Investitionen ── */
   const isEnabled = (key) => phases.find(p => p.key === key)?.enabled;
 
-  const investPhase1 = 65000;
+  const investPhase1 = INVEST_ANALYSE;
   const investPhase2 = isEnabled("pv")
-    ? Math.round(pvDach * 650000 + pvFassade * 650000 + pvCarport * 1200000 + pvFreiflaeche * 550000)
+    ? Math.round(pvDach * PV_COST_ROOF_PER_MWP + pvFassade * PV_COST_FACADE_PER_MWP + pvCarport * PV_COST_CARPORT_PER_MWP + pvFreiflaeche * PV_COST_GROUND_PER_MWP)
     : 0;
   const investPhase3 = isEnabled("speicher")
-    ? Math.round(standortBESS * 187000 + (standortBESS > 0 ? 185000 : 0))
+    ? Math.round(standortBESS * BESS_SITE_PER_MWH + (standortBESS > 0 ? BESS_SITE_EMS : 0))
     : 0;
   const investPhase4 = isEnabled("waerme") && wpLeistung > 0
-    ? Math.round(wpLeistung * 400000 + 1000000 + pufferspeicher * 600 + 800000)
+    ? Math.round(wpLeistung * HP_COST_PER_MW + HP_INSTALL_BASE + pufferspeicher * BUFFER_COST_PER_M3 + HEAT_NETWORK_COST)
     : 0;
   const investPhase5 = isEnabled("ladeinfra") && (anzahlPKW > 0 || anzahlLKW > 0)
     ? Math.round(
-        anzahlPKW * 2500
-        + (anzahlPKW > 0 ? Math.ceil(anzahlPKW / 12) * 75000 : 0)
-        + (anzahlLKW > 0 ? Math.max(1, Math.ceil(anzahlLKW * 0.5)) * 200000 : 0)
-        + 350000
+        anzahlPKW * WALLBOX_PER_UNIT
+        + (anzahlPKW > 0 ? Math.ceil(anzahlPKW / 12) * CHARGE_HUB_AC : 0)
+        + (anzahlLKW > 0 ? Math.max(1, Math.ceil(anzahlLKW * 0.5)) * CHARGE_DC_PER_UNIT : 0)
+        + CHARGE_INFRA_BASE
       )
     : 0;
   const investPhase6 = isEnabled("bess") && graustromBESS > 0
-    ? Math.round(graustromBESS * 175000 + 6500000)
+    ? Math.round(graustromBESS * BESS_GRID_PER_MWH + BESS_GRID_CONNECTION)
     : 0;
 
   const investStandort = investPhase1 + investPhase2 + investPhase3 + investPhase4 + investPhase5;
@@ -240,15 +282,15 @@ export function project20Years(project, existingCalc = null) {
       cumCfFin = -calc.ekBetrag;
       continue;
     }
-    const pvF = Math.pow(0.995, y);
-    const pF = Math.pow(1.02, y);
+    const pvF = Math.pow(PV_DEGRADATION_RATE, y);
+    const pF = Math.pow(PRICE_ESCALATION_RATE, y);
     const strom = Math.round(calc.stromEinsparung * pvF * pF);
     const einsp = Math.round(calc.einspeiseErloese * pvF);
     const peak = Math.round(calc.peakShavingSavings * pF);
-    const gas = Math.round(calc.gasEinsparung * Math.pow(1.025, y));
+    const gas = Math.round(calc.gasEinsparung * Math.pow(GAS_ESCALATION_RATE, y));
     const mob = Math.round(calc.mobilitaetEinsparung * pF);
-    const bess = Math.round(calc.bessErloes * Math.pow(1.01, y));
-    const wart = Math.round(calc.investStandort * 0.015 + calc.investPhase6 * 0.008);
+    const bess = Math.round(calc.bessErloes * Math.pow(BESS_ESCALATION_RATE, y));
+    const wart = Math.round(calc.investStandort * MAINT_RATE_SITE + calc.investPhase6 * MAINT_RATE_BESS);
     const cf = strom + einsp + peak + gas + mob + bess - wart;
     cumCf += cf;
     const debt = debtSchedule[y].annuitaet;

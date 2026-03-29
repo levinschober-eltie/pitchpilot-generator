@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { calculateAll, fmtEuro, fmtNum } from "../calcEngine";
+import { calculateAll, fmtEuro } from "../calcEngine";
 import Icon from "./Icons";
 
 const PHASE_ICONS = {

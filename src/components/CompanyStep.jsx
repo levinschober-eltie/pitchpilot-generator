@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import Icon from "./Icons";
-import { THEME_LIST, THEME_PRESETS, resolveTheme } from "../themes";
+import { THEME_LIST, resolveTheme } from "../themes";
 import { analyzeWebsiteCI } from "../ciAnalyzer";
 
 const INDUSTRIES = [
