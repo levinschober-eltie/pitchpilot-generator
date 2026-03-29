@@ -57,9 +57,11 @@ function BillAnalysis({ currentData, onApply }) {
     leistung: 0, grundpreis: 0,
   });
 
-  useEffect(() => () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
+    };
   }, []);
 
   const startAnalysis = useCallback(() => {

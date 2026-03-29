@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import Icon from "./Icons";
 import { THEME_LIST, THEME_PRESETS, resolveTheme } from "../themes";
 import { analyzeWebsiteCI } from "../ciAnalyzer";
@@ -135,20 +135,23 @@ export default function CompanyStep({ data, onChange, consultant, onConsultantCh
   const [ciLoading, setCiLoading] = useState(false);
   const [ciError, setCiError] = useState(null);
   const [ciResult, setCiResult] = useState(th.customColors || null);
+  const ciUrlRef = useRef(ciUrl);
+  ciUrlRef.current = ciUrl;
 
-  const handleCiAnalyze = async () => {
-    if (!ciUrl.trim()) return;
+  const handleCiAnalyze = useCallback(async () => {
+    const url = ciUrlRef.current;
+    if (!url.trim()) return;
     setCiLoading(true);
     setCiError(null);
     try {
-      const { data, error } = await analyzeWebsiteCI(ciUrl);
+      const { data, error } = await analyzeWebsiteCI(url);
       if (data) {
         setCiResult(data);
         onThemeChange?.({
           preset: "custom",
           customColors: data,
           font: data.font,
-          websiteUrl: ciUrl.trim(),
+          websiteUrl: url.trim(),
         });
       } else {
         setCiError(error || "Analyse fehlgeschlagen. Bitte URL prüfen.");
@@ -158,7 +161,7 @@ export default function CompanyStep({ data, onChange, consultant, onConsultantCh
     } finally {
       setCiLoading(false);
     }
-  };
+  }, [onThemeChange]);
 
   const selectPreset = (key) => {
     setCiResult(null);

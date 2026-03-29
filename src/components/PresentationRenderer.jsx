@@ -852,6 +852,11 @@ function VersionManager({ project, onClose, onRestore }) {
   const [editName, setEditName] = useState("");
   const [shareUrl, setShareUrl] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const copiedTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current); };
+  }, []);
 
   const refresh = () => {
     const fresh = getProject(project.id);
@@ -884,7 +889,8 @@ function VersionManager({ project, onClose, onRestore }) {
       setShareUrl(result.url);
       navigator.clipboard.writeText(result.url).then(() => {
         setCopiedId(vid);
-        setTimeout(() => setCopiedId(null), 2000);
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
       });
     }
   };
@@ -895,7 +901,8 @@ function VersionManager({ project, onClose, onRestore }) {
       setShareUrl(result.url);
       navigator.clipboard.writeText(result.url).then(() => {
         setCopiedId("current");
-        setTimeout(() => setCopiedId(null), 2000);
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
       });
     }
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getApiKey, setApiKey } from "../store";
 import Icon from "./Icons";
 
@@ -6,9 +6,14 @@ export default function Settings() {
   const [key, setKey] = useState("");
   const [saved, setSaved] = useState(false);
   const [hasKey, setHasKey] = useState(!!getApiKey());
+  const savedTimerRef = useRef(null);
 
   useEffect(() => {
     setHasKey(!!getApiKey());
+  }, []);
+
+  useEffect(() => {
+    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); };
   }, []);
 
   const handleSave = (e) => {
@@ -17,7 +22,8 @@ export default function Settings() {
     setHasKey(!!key.trim());
     setKey("");
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   };
 
   const handleClear = () => {

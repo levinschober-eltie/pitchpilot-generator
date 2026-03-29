@@ -43,7 +43,9 @@ export default function Dashboard() {
   const [shareLoading, setShareLoading] = useState(null);
   const copyTimerRef = useRef(null);
 
-  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
+  useEffect(() => {
+    return () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); };
+  }, []);
 
   const handleShare = useCallback(async (e, project) => {
     e.stopPropagation();
