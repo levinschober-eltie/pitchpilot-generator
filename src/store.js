@@ -310,8 +310,8 @@ export async function encodeSharePayload(project, versionId) {
 
   const payload = buildSharePayload(project, src, versionId);
   const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
-  const base = window.location.href.split("#")[0];
-  return `${base}#/shared?d=${compressed}`;
+  const base = window.location.origin;
+  return `${base}/shared?d=${compressed}`;
 }
 
 export async function decodeSharePayload(encoded) {
@@ -394,8 +394,8 @@ export async function createNamedShareLink(project, versionId) {
   }
 
   // Fallback: client-side lz-string link
-  const base = window.location.href.split("#")[0];
-  return { type: "hash", slug: null, url: `${base}#/shared?d=${compressed}`, compressed };
+  const base = window.location.origin;
+  return { type: "hash", slug: null, url: `${base}/shared?d=${compressed}`, compressed };
 }
 
 /**

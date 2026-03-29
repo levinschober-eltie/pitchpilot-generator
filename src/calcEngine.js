@@ -189,7 +189,7 @@ export function calculateAll(project) {
     anzahlPKW, anzahlLKW, kmPKW, kmLKW, dieselpreis,
     pkwEinsparung, lkwEinsparung, mobilitaetEinsparung,
     graustromBESS, bessLeistung, bessErloes, bessRendite,
-    stromEinsparung, einspeiseErloese, peakShavingSavings,
+    stromEinsparung, einspeiseErloese,
     einsparungStandort, gesamtertrag,
     co2Strom, co2Waerme, co2PKW, co2LKW, co2Gesamt, co2Kosten,
     investPhase1, investPhase2, investPhase3, investPhase4, investPhase5, investPhase6,

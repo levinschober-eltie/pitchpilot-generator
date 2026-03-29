@@ -38,7 +38,7 @@ export default function Wizard() {
     const timer = setTimeout(() => {
       const saved = saveProject({ ...project, step });
       if (!id && saved.id) {
-        window.history.replaceState(null, "", `#/edit/${saved.id}`);
+        window.history.replaceState(null, "", `/edit/${saved.id}`);
       }
       setHasPendingSave(false);
     }, 300);
