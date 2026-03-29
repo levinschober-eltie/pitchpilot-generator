@@ -1,13 +1,22 @@
 /**
  * POST /api/share — Create a named share link.
- * Stores compressed payload in Vercel KV, returns a human-readable slug.
+ * Stores compressed payload in Upstash Redis, returns a human-readable slug.
  *
  * Body: { payload: string (lz-string compressed), companyName: string, projectId: string }
  * Returns: { slug: string, url: string }
  *
  * Rate limit: 10 creates per minute per IP (in-memory, resets on cold start)
  */
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
+
+// --- CORS Whitelist ---
+const ALLOWED_ORIGINS = [
+  "https://pitchpilot-generator.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
 
 // --- Rate limiting (Map-based, per serverless instance) ---
 const rateLimitMap = new Map(); // key: IP -> { count, resetAt }
@@ -57,15 +66,28 @@ function sanitize(str, maxLen = 500) {
   return str.trim().slice(0, maxLen);
 }
 
-/** Validate projectId format (alphanumeric, dashes, underscores, max 64 chars) */
+/** Validate projectId format — required for share creation, must be non-empty */
 function isValidProjectId(id) {
-  if (!id) return true; // optional field
+  if (!id || (typeof id === "string" && id.trim().length === 0)) return false;
   return typeof id === "string" && id.length <= 64 && /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
+/** Safely parse JSON with fallback */
+function safeJsonParse(str, fallback = null) {
+  if (typeof str !== "string") return str ?? fallback;
+  try {
+    return JSON.parse(str);
+  } catch (err) {
+    console.error("JSON parse error:", err.message);
+    return fallback;
+  }
+}
+
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // CORS — Origin-Check
+  const origin = req.headers.origin;
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader("Access-Control-Allow-Origin", corsOrigin);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -93,17 +115,17 @@ export default async function handler(req, res) {
     // Validate companyName length (max 200 chars)
     const cleanCompanyName = sanitize(companyName, 200);
 
-    // Validate projectId format
+    // Validate projectId — required for share creation
     if (!isValidProjectId(projectId)) {
-      return res.status(400).json({ error: "Invalid projectId format" });
+      return res.status(400).json({ error: "Invalid or missing projectId" });
     }
-    const cleanProjectId = projectId ? sanitize(projectId, 64) : null;
+    const cleanProjectId = sanitize(projectId, 64);
 
     // Generate slug: company-name-abc123
     const base = slugify(cleanCompanyName || "pitch");
     const slug = `${base}-${shortId()}`;
 
-    // Store in KV with 90-day TTL
+    // Store in Redis with 90-day TTL
     const shareData = {
       payload,
       projectId: cleanProjectId,
@@ -112,15 +134,17 @@ export default async function handler(req, res) {
       views: [],
     };
 
-    await kv.set(`share:${slug}`, JSON.stringify(shareData), { ex: 90 * 24 * 60 * 60 });
+    await redis.set(`share:${slug}`, JSON.stringify(shareData), { ex: 90 * 24 * 60 * 60 });
 
     // Also index by projectId for stats lookup
-    if (cleanProjectId) {
-      const existingSlugs = await kv.get(`project_shares:${cleanProjectId}`);
-      const slugList = existingSlugs ? (typeof existingSlugs === "string" ? JSON.parse(existingSlugs) : existingSlugs) : [];
-      slugList.push({ slug, companyName: cleanCompanyName, createdAt: Date.now() });
-      await kv.set(`project_shares:${cleanProjectId}`, JSON.stringify(slugList));
+    const existingRaw = await redis.get(`project_shares:${cleanProjectId}`);
+    const slugList = safeJsonParse(existingRaw, []);
+    if (!Array.isArray(slugList)) {
+      console.error("project_shares data corrupted for:", cleanProjectId);
+      return res.status(500).json({ error: "Internal error: corrupted project index" });
     }
+    slugList.push({ slug, companyName: cleanCompanyName, createdAt: Date.now() });
+    await redis.set(`project_shares:${cleanProjectId}`, JSON.stringify(slugList));
 
     const url = `/p/${slug}`;
     return res.status(200).json({ slug, url });

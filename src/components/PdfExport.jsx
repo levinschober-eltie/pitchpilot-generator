@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { calculateAll, project20Years, fmtEuro, fmtNum, getPhaseCalcItems, getDynamicHeroCards } from "../calcEngine";
 import { C } from "../colors";
 import { useTheme } from "../ThemeContext";
@@ -762,6 +762,13 @@ export default function PdfExport({ project, onClose }) {
     Object.fromEntries(SECTIONS.map(s => [s.key, s.def]))
   );
   const [generating, setGenerating] = useState(false);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
 
   const handleChange = useCallback((key, val) => {
     setSelected(prev => ({ ...prev, [key]: val }));

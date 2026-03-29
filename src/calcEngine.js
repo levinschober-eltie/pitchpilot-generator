@@ -17,31 +17,32 @@ export function calculateAll(project) {
   const mob = pc.ladeinfra || {};
   const market = project.market || {};
 
-  const stromverbrauch = e.stromverbrauch || 10000;
-  const gasverbrauch = e.gasverbrauch || 5000;
-  const strompreis = e.strompreis || 22; // ct/kWh
-  const gaspreis = e.gaspreis || 7;
-  const dieselpreis = mob.dieselpreis || 1.55;
+  const stromverbrauch = Math.max(0, e.stromverbrauch ?? 10000);
+  const gasverbrauch = Math.max(0, e.gasverbrauch ?? 5000);
+  const strompreis = Math.max(0, e.strompreis ?? 22); // ct/kWh
+  const gaspreis = Math.max(0, e.gaspreis ?? 7);
+  const dieselpreis = Math.max(0, mob.dieselpreis ?? 1.55);
 
   /* ── PV ── */
   const pvConf = pc.pv || {};
-  const pvDach = pvConf.pvDach || 0;
-  const pvFassade = pvConf.pvFassade || 0;
-  const pvCarport = pvConf.pvCarport || 0;
-  const pvFreiflaeche = pvConf.pvFreiflaeche || 0;
-  const pvBestand = e.existingPV || 0;
+  const pvDach = Math.max(0, pvConf.pvDach ?? 0);
+  const pvFassade = Math.max(0, pvConf.pvFassade ?? 0);
+  const pvCarport = Math.max(0, pvConf.pvCarport ?? 0);
+  const pvFreiflaeche = Math.max(0, pvConf.pvFreiflaeche ?? 0);
+  const pvBestand = Math.max(0, e.existingPV ?? 0);
   const totalPV = pvDach + pvFassade + pvCarport + pvFreiflaeche + pvBestand;
   // Use detailed market simulation when available, otherwise simple estimate
-  const pvErzeugung = market.pvYieldMWh > 0
-    ? Math.round(market.pvYieldMWh)
-    : Math.round(totalPV * PV_YIELD);
+  const pvErzeugungRaw = market.pvYieldMWh > 0
+    ? market.pvYieldMWh
+    : totalPV * PV_YIELD;
+  const pvErzeugung = isFinite(pvErzeugungRaw) ? Math.round(pvErzeugungRaw) : 0;
 
   /* ── Self-consumption ── */
   const spConf = pc.speicher || {};
-  const standortBESS = spConf.kapazitaet || 0;
+  const standortBESS = spConf.kapazitaet ?? 0;
   // Use market simulation rate when available
   let eigenverbrauchsquote;
-  if (market.selfConsumptionRate != null) {
+  if (market.selfConsumptionRate != null && isFinite(market.selfConsumptionRate)) {
     eigenverbrauchsquote = Math.round(Math.max(0, Math.min(93, market.selfConsumptionRate * 100)));
   } else {
     const baseRatio = pvErzeugung > 0
@@ -68,17 +69,17 @@ export function calculateAll(project) {
 
   /* ── Heat ── */
   const wConf = pc.waerme || {};
-  const wpLeistung = wConf.wpLeistung || 0;
-  const pufferspeicher = wConf.pufferspeicher || 0;
+  const wpLeistung = wConf.wpLeistung ?? 0;
+  const pufferspeicher = wConf.pufferspeicher ?? 0;
   const wpErzeugung = Math.round(wpLeistung * 2200); // MWh therm/a
   const gasErsatzRate = gasverbrauch > 0 ? Math.round(Math.max(0, Math.min(85, (wpErzeugung / gasverbrauch) * 100))) : 0;
   const gasEinsparung = Math.round(gasverbrauch * (gasErsatzRate / 100) * gaspreis * 10);
 
   /* ── Mobility PKW ── */
-  const anzahlPKW = mob.anzahlPKW || 0;
-  const anzahlLKW = mob.anzahlLKW || 0;
-  const kmPKW = mob.kmPKW || 15000;
-  const kmLKW = mob.kmLKW || 60000;
+  const anzahlPKW = mob.anzahlPKW ?? 0;
+  const anzahlLKW = mob.anzahlLKW ?? 0;
+  const kmPKW = mob.kmPKW ?? 15000;
+  const kmLKW = mob.kmLKW ?? 60000;
   const pkwDieselL = anzahlPKW * kmPKW * 0.07;
   const pkwDieselKosten = pkwDieselL * dieselpreis;
   const pkwStromKosten = anzahlPKW * kmPKW * 0.0002 * strompreis * 10;
@@ -93,7 +94,7 @@ export function calculateAll(project) {
 
   /* ── Graustrom-BESS ── */
   const bConf = pc.bess || {};
-  const graustromBESS = bConf.kapazitaet || 0;
+  const graustromBESS = bConf.kapazitaet ?? 0;
   const bessLeistung = graustromBESS / 2; // MW (2h system)
   const bessErloes = Math.round(graustromBESS * 42500); // €/a
 
@@ -143,7 +144,7 @@ export function calculateAll(project) {
 
   /* ── Autarkie ── */
   // Electricity autarky from market simulation or simple estimate
-  const elecAutarky = market.autarkyRate != null
+  const elecAutarky = market.autarkyRate != null && isFinite(market.autarkyRate)
     ? market.autarkyRate * 100
     : stromverbrauch > 0 ? Math.max(0, Math.min(100, (eigenverbrauch / stromverbrauch) * 100)) : 0;
   // Blend: 60% electricity + 30% heat + 5% base (Eckart formula)
@@ -151,12 +152,12 @@ export function calculateAll(project) {
   const autarkie = isFinite(autarkieRaw) ? autarkieRaw : 0;
 
   /* ── Finanzierung ── */
-  const ekAnteilPct = fin.ekAnteil || 30;
+  const ekAnteilPct = Math.max(0, Math.min(100, fin.ekAnteil ?? 30));
   const ekBetrag = Math.round(investGesamt * (ekAnteilPct / 100));
-  const kreditBetrag = investGesamt - ekBetrag;
-  const zinsRate = (fin.kreditZins || 4.5) / 100;
-  const kreditLaufzeit = fin.kreditLaufzeit || 15;
-  const tilgungsfrei = fin.tilgungsfrei || 2;
+  const kreditBetrag = Math.max(0, investGesamt - ekBetrag);
+  const zinsRate = Math.max(0, (fin.kreditZins ?? 4.5)) / 100;
+  const kreditLaufzeit = Math.max(1, fin.kreditLaufzeit ?? 15);
+  const tilgungsfrei = Math.max(0, fin.tilgungsfrei ?? 2);
   const tilgungsJahre = Math.max(1, kreditLaufzeit - tilgungsfrei);
   const zinsTilgungsfrei = Math.round(kreditBetrag * zinsRate);
 
@@ -176,9 +177,9 @@ export function calculateAll(project) {
   const dscr = isFinite(dscrRaw) ? Math.round(dscrRaw * 100) / 100 : 99;
 
   // Market-specific KPIs (only when market analysis has run)
-  const dvRevenue = market.dvRevenue || 0;
-  const dvBessRevenue = market.dvBessRevenue || 0;
-  const procurementSavings = market.procurementSavings || 0;
+  const dvRevenue = market.dvRevenue ?? 0;
+  const dvBessRevenue = market.dvBessRevenue ?? 0;
+  const procurementSavings = market.procurementSavings ?? 0;
   const hasMarket = !!market.pvYieldMWh;
 
   return {
@@ -201,11 +202,11 @@ export function calculateAll(project) {
 }
 
 /** 20-Year Cashflow Projection */
-export function project20Years(project) {
-  const calc = calculateAll(project);
+export function project20Years(project, existingCalc = null) {
+  const calc = existingCalc ?? calculateAll(project);
   const fin = project.finance || {};
-  const zinsRate = (fin.kreditZins || 4.5) / 100;
-  const tilgungsfrei = fin.tilgungsfrei || 2;
+  const zinsRate = Math.max(0, (fin.kreditZins ?? 4.5)) / 100;
+  const tilgungsfrei = Math.max(0, fin.tilgungsfrei ?? 2);
 
   // Tilgungsplan
   let restschuld = calc.kreditBetrag;

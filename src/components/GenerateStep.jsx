@@ -50,8 +50,16 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
       );
       onGenerated(content);
     } catch (e) {
-      if (e.name !== "AbortError") {
-        setError(e.message);
+      if (e.name === "AbortError") {
+        setError("Generierung abgebrochen.");
+      } else if (e.message?.includes("429") || e.status === 429) {
+        setError("API-Limit erreicht. Bitte in 30 Sekunden erneut versuchen.");
+      } else if (e.message?.match(/50[023]/) || [500, 502, 503].includes(e.status)) {
+        setError("Claude API nicht erreichbar. Bitte später versuchen.");
+      } else if (e.message?.toLowerCase().includes("network") || e.message?.toLowerCase().includes("failed to fetch")) {
+        setError("Keine Internetverbindung.");
+      } else {
+        setError("Fehler: " + e.message);
       }
     }
     setGenerating(false);
@@ -146,7 +154,10 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
         <div style={{ textAlign: "center" }}>
           {error && (
             <div className="card" style={{ background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.3)", marginBottom: "1rem", textAlign: "left" }}>
-              <div style={{ color: "var(--red)", fontSize: "0.85rem" }}>{error}</div>
+              <div style={{ color: "var(--red)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>{error}</div>
+              <button className="btn btn-secondary btn-sm" onClick={handleGenerate} style={{ fontSize: "0.75rem" }}>
+                <Icon name="sparkle" size={12} /> Erneut versuchen
+              </button>
             </div>
           )}
           <button className="btn btn-primary btn-lg" onClick={handleGenerate}>

@@ -750,7 +750,7 @@ function FinalSummary({ summary, calc, heroCards, color, project }) {
           </div>
           <div style={{ fontFamily: T.font, fontSize: "0.8rem", color: "#999" }}>{project.consultant.label}</div>
           {project.consultant.email && (
-            <a href={`mailto:${project.consultant.email}`} style={{
+            <a href={`mailto:${encodeURIComponent(project.consultant?.email || "")}`} style={{
               display: "inline-block", marginTop: "0.75rem", padding: "0.5rem 1.5rem",
               borderRadius: "2rem", background: `${color}20`, border: `1px solid ${color}40`,
               color, fontFamily: T.font, fontSize: "0.75rem", fontWeight: 700, textDecoration: "none",
@@ -1060,6 +1060,8 @@ export default function PresentationRenderer() {
   const [toast, setToast] = useState(null);
   const contentRef = useRef(null);
   const originalConfigRef = useRef(null);
+  const toastTimerRef = useRef(null);
+  const saveTimerRef = useRef(null);
 
   // Live calculation — recalculates on every config change
   const calc = useMemo(() => project ? calculateAll(project) : null, [project]);
@@ -1073,10 +1075,19 @@ export default function PresentationRenderer() {
     [project?.phases]
   );
 
-  // Toast helper
+  // Toast helper with cleanup
   const showToast = useCallback((msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2500);
+  }, []);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, []);
 
   // Store original config when analysis opens (for reset)
@@ -1113,11 +1124,12 @@ export default function PresentationRenderer() {
     showToast("Kalkulation zurückgesetzt");
   }, [showToast]);
 
-  // Update a nested config value and save to localStorage
+  // Update a nested config value — state instant, localStorage debounced
   const updateConfig = useCallback((path, value) => {
     setProject(prev => {
       const next = setVal(prev, path, value);
-      saveProject(next);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => saveProject(next), 500);
       return next;
     });
     setConfigSaved(false);

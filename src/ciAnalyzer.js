@@ -1,3 +1,5 @@
+import { hexToRgb } from "./utils.js";
+
 /**
  * Website CI (Corporate Identity) Analyzer.
  * Fetches a company website via CORS proxy cascade and extracts dominant colors + fonts.
@@ -318,11 +320,6 @@ function normalizeHex(hex) {
   if (h.length === 8) h = h.slice(0, 6); // strip alpha
   if (h.length !== 6) return null;
   return "#" + h.toUpperCase();
-}
-
-function hexToRgb(hex) {
-  const h = hex.replace("#", "");
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
 function isNearWhite(hex) {

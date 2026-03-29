@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { listProjects, deleteProject, duplicateProject, seedDemoProjects, createNamedShareLink, fetchShareStats } from "../store";
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import Icon from "./Icons";
 
 export default function Dashboard() {
@@ -41,6 +41,9 @@ export default function Dashboard() {
 
   const [copiedId, setCopiedId] = useState(null);
   const [shareLoading, setShareLoading] = useState(null);
+  const copyTimerRef = useRef(null);
+
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   const handleShare = useCallback(async (e, project) => {
     e.stopPropagation();
@@ -50,7 +53,8 @@ export default function Dashboard() {
       if (result) {
         await navigator.clipboard.writeText(result.url);
         setCopiedId(project.id);
-        setTimeout(() => setCopiedId(null), 3000);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopiedId(null), 3000);
       }
     } catch { /* silent */ }
     setShareLoading(null);

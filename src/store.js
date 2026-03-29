@@ -43,7 +43,11 @@ export function saveProject(project) {
   if (!project.id) project.id = generateId();
   project.updatedAt = Date.now();
   if (!project.createdAt) project.createdAt = Date.now();
-  localStorage.setItem(PREFIX + project.id, JSON.stringify(project));
+  try {
+    localStorage.setItem(PREFIX + project.id, JSON.stringify(project));
+  } catch (err) {
+    console.warn("[PitchPilot] localStorage.setItem fehlgeschlagen:", err?.name, err?.message);
+  }
   return project;
 }
 
@@ -148,7 +152,11 @@ export function seedDemoProjects() {
   import("./demoProjects.js").then(({ DEMO_PROJECTS }) => {
     for (const demo of DEMO_PROJECTS) {
       if (!getProject(demo.id)) {
-        localStorage.setItem(PREFIX + demo.id, JSON.stringify(demo));
+        try {
+          localStorage.setItem(PREFIX + demo.id, JSON.stringify(demo));
+        } catch (err) {
+          console.warn("[PitchPilot] localStorage.setItem fehlgeschlagen (seed):", err?.name, err?.message);
+        }
       }
     }
   });

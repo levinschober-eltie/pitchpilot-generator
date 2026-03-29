@@ -1,3 +1,5 @@
+import { hexToRgb } from "./utils.js";
+
 /**
  * Theme presets for PitchPilot presentations.
  * Each preset has the same shape as the `C` palette in colors.js.
@@ -164,12 +166,6 @@ export function buildCustomTheme(base, ci, customFont) {
 }
 
 /* ── Color utility helpers ── */
-function hexToRgb(hex) {
-  const h = hex.replace("#", "");
-  if (h.length !== 6) return [128, 128, 128];
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-
 function rgbToHex(r, g, b) {
   return "#" + [r, g, b].map(c => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")).join("");
 }

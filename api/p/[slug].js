@@ -5,8 +5,17 @@
  *
  * No rate limit — view tracking should work freely.
  */
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import { createHash } from "crypto";
+
+const redis = Redis.fromEnv();
+
+// --- CORS Whitelist ---
+const ALLOWED_ORIGINS = [
+  "https://pitchpilot-generator.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
 
 function hashIp(ip) {
   if (!ip) return "unknown";
@@ -21,8 +30,22 @@ function parseDevice(ua) {
   return "desktop";
 }
 
+/** Safely parse JSON with fallback */
+function safeJsonParse(str, fallback = null) {
+  if (typeof str !== "string") return str ?? fallback;
+  try {
+    return JSON.parse(str);
+  } catch (err) {
+    console.error("JSON parse error:", err.message);
+    return fallback;
+  }
+}
+
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // CORS — Origin-Check
+  const origin = req.headers.origin;
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader("Access-Control-Allow-Origin", corsOrigin);
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
@@ -33,10 +56,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid slug" });
     }
 
-    const raw = await kv.get(`share:${slug}`);
+    const raw = await redis.get(`share:${slug}`);
     if (!raw) return res.status(404).json({ error: "Link not found or expired" });
 
-    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const data = safeJsonParse(raw, null);
+    if (!data) {
+      console.error("Corrupted share data for slug:", slug);
+      return res.status(500).json({ error: "Internal error: corrupted share data" });
+    }
 
     // Record view event (non-blocking — don't let tracking failure block the response)
     const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress;
@@ -55,7 +82,7 @@ export default async function handler(req, res) {
     data.views = views;
 
     // Save async — don't await to keep response fast
-    kv.set(`share:${slug}`, JSON.stringify(data), { ex: 90 * 24 * 60 * 60 }).catch(() => {});
+    redis.set(`share:${slug}`, JSON.stringify(data), { ex: 90 * 24 * 60 * 60 }).catch(() => {});
 
     return res.status(200).json({
       payload: data.payload,

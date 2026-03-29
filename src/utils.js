@@ -5,6 +5,13 @@ export function getVal(obj, path) {
   return o;
 }
 
+/** Convert hex color to [r, g, b] array. Falls back to mid-gray for malformed input. */
+export function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return [128, 128, 128];
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
 /** Immutable nested setter (2 or 3 levels deep) */
 export function setVal(obj, path, value) {
   const next = { ...obj };

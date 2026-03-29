@@ -264,7 +264,7 @@ function SharedPresentationInner({ project, calc, heroCards, configOpen, setConf
           <div style={{ marginTop: "2rem", padding: "1rem", background: `${T.gold}08`, borderRadius: 12, border: `1px solid ${T.gold}20` }}>
             <div style={{ fontFamily: T.font, fontSize: "0.85rem", color: T.warmWhite }}>{project.consultant.name} · {project.consultant.company}</div>
             {project.consultant.email && (
-              <a href={`mailto:${project.consultant.email}`} style={{ color: T.gold, fontSize: "0.8rem", fontFamily: T.font }}>
+              <a href={`mailto:${encodeURIComponent(project.consultant?.email || "")}`} style={{ color: T.gold, fontSize: "0.8rem", fontFamily: T.font }}>
                 Kontakt aufnehmen
               </a>
             )}
