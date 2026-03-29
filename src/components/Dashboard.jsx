@@ -62,6 +62,20 @@ export default function Dashboard() {
     setShareLoading(null);
   }, []);
 
+  const handleWhatsApp = useCallback(async (e, project) => {
+    e.stopPropagation();
+    setShareLoading(project.id);
+    try {
+      const result = await createNamedShareLink(project);
+      if (result) {
+        const name = project.company?.name || "Energietransformation";
+        const msg = `Hallo,\n\nhier ist das interaktive Energiekonzept für ${name}:\n${result.url}\n\nMit freundlichen Grüßen`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+      }
+    } catch { /* silent */ }
+    setShareLoading(null);
+  }, []);
+
   const statsRequestRef = useRef(0);
   const handleOpenStats = useCallback(async (e, projectId) => {
     e.stopPropagation();
@@ -119,6 +133,7 @@ export default function Dashboard() {
               onDelete={handleDelete}
               onDuplicate={handleDuplicate}
               onShare={handleShare}
+              onWhatsApp={handleWhatsApp}
               onOpenStats={handleOpenStats}
             />
 
@@ -133,7 +148,7 @@ export default function Dashboard() {
   );
 }
 
-const ProjectCard = memo(function ProjectCard({ project: p, copiedId, shareLoading, statsOpen, onNavigate, onDelete, onDuplicate, onShare, onOpenStats }) {
+const ProjectCard = memo(function ProjectCard({ project: p, copiedId, shareLoading, statsOpen, onNavigate, onDelete, onDuplicate, onShare, onWhatsApp, onOpenStats }) {
   return (
     <div
       className="card card-hover project-card"
@@ -175,6 +190,16 @@ const ProjectCard = memo(function ProjectCard({ project: p, copiedId, shareLoadi
             ) : (
               <Icon name={copiedId === p.id ? "check" : "eye"} size={12} />
             )}
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={(e) => onWhatsApp(e, p)}
+            title="Per WhatsApp senden"
+            aria-label="WhatsApp"
+            disabled={shareLoading === p.id}
+            style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.2)" }}
+          >
+            <Icon name="phone" size={12} color="#25D366" />
           </button>
           <button className="btn btn-secondary btn-sm" onClick={(e) => onOpenStats(e, p.id)} title="Statistiken" aria-label="Statistiken"
             style={statsOpen === p.id ? { background: "var(--yellow)", color: "var(--black)" } : undefined}>
@@ -231,6 +256,25 @@ function ShareAnalytics({ stats, loading, projectName }) {
 
   return (
     <div className="card" style={{ marginTop: "0.5rem", padding: "1rem" }}>
+      {/* Interest leads */}
+      {stats.interests?.length > 0 && (
+        <div style={{ marginBottom: "1rem", padding: "0.6rem", background: "rgba(255,206,0,0.06)", borderRadius: 8, border: "1px solid rgba(255,206,0,0.15)" }}>
+          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--yellow)", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            <Icon name="mail" size={13} color="var(--yellow)" /> {stats.interests.length} Lead{stats.interests.length !== 1 ? "s" : ""}
+          </div>
+          {stats.interests.slice(-5).reverse().map((lead, i) => (
+            <div key={i} style={{ padding: "0.35rem 0", borderBottom: i < Math.min(4, stats.interests.length - 1) ? "1px solid rgba(255,255,255,0.05)" : "none", fontSize: "0.72rem" }}>
+              <div style={{ fontWeight: 600 }}>{lead.name} · <a href={`mailto:${lead.email}`} style={{ color: "var(--yellow)" }}>{lead.email}</a></div>
+              {lead.phone && <div style={{ color: "var(--gray-text)" }}>{lead.phone}</div>}
+              {lead.message && <div style={{ color: "var(--gray-text)", fontStyle: "italic", marginTop: "0.1rem" }}>„{lead.message}"</div>}
+              <div style={{ color: "var(--gray-text)", fontSize: "0.6rem", marginTop: "0.1rem" }}>
+                {new Date(lead.timestamp).toLocaleString("de-DE")}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
         <Icon name="chart" size={14} color="var(--yellow)" /> Link-Statistiken
       </div>
@@ -270,6 +314,31 @@ function ShareAnalytics({ stats, loading, projectName }) {
                   {device === "desktop" ? "Desktop" : device === "mobile" ? "Mobil" : "Tablet"}: {count}
                 </span>
               ))}
+            </div>
+          )}
+
+          {/* Phase engagement breakdown */}
+          {s.phaseEngagement?.phaseViews && Object.keys(s.phaseEngagement.phaseViews).length > 0 && (
+            <div style={{ marginTop: "0.5rem" }}>
+              <div style={{ fontSize: "0.6rem", color: "var(--gray-text)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Phasen-Engagement
+              </div>
+              <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                {Object.entries(s.phaseEngagement.phaseViews).sort((a, b) => a[0] - b[0]).map(([phase, count]) => {
+                  const phaseNames = ["I", "II", "III", "IV", "V", "VI", "★"];
+                  const avgSec = s.phaseEngagement.avgDuration?.[phase] || 0;
+                  return (
+                    <div key={phase} title={`Phase ${phaseNames[phase] || phase}: ${count} Aufrufe, Ø ${avgSec}s`} style={{
+                      padding: "0.2rem 0.45rem", borderRadius: 6, fontSize: "0.62rem", fontWeight: 600,
+                      background: count > 3 ? "rgba(255,206,0,0.12)" : "rgba(255,255,255,0.05)",
+                      border: `1px solid ${count > 3 ? "rgba(255,206,0,0.25)" : "var(--border)"}`,
+                      color: count > 3 ? "var(--yellow)" : "var(--gray-text)",
+                    }}>
+                      {phaseNames[phase] || phase}: {count}× {avgSec > 0 ? `(Ø${avgSec}s)` : ""}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

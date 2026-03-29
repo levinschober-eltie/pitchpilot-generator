@@ -47,9 +47,10 @@ export default async function handler(req, res) {
   const origin = req.headers.origin;
   const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader("Access-Control-Allow-Origin", corsOrigin);
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   // Rate limiting (Upstash sliding window)
   const ip = getClientIp(req);
@@ -68,6 +69,36 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid slug" });
     }
 
+    // POST: phase engagement event (fire-and-forget tracking)
+    if (req.method === "POST") {
+      const { phase, duration, action } = req.body || {};
+      const engagementKey = `engagement:${slug}`;
+
+      let events = [];
+      try {
+        const raw = await redis.get(engagementKey);
+        if (typeof raw === "string") events = JSON.parse(raw);
+        else if (Array.isArray(raw)) events = raw;
+      } catch { /* fresh start */ }
+      if (!Array.isArray(events)) events = [];
+
+      events.push({
+        ts: Date.now(),
+        phase: typeof phase === "number" ? phase : null,
+        duration: Math.min(3600, Math.max(0, parseInt(duration) || 0)),
+        action: typeof action === "string" ? action.slice(0, 30) : "view",
+        device: parseDevice(req.headers["user-agent"]),
+        deviceHash: hashIp(ip),
+      });
+
+      // Keep last 2000 engagement events
+      if (events.length > 2000) events.splice(0, events.length - 2000);
+      redis.set(engagementKey, JSON.stringify(events), { ex: 90 * 24 * 60 * 60 }).catch(() => {});
+
+      return res.status(200).json({ ok: true });
+    }
+
+    // GET: load share data
     const raw = await redis.get(`share:${slug}`);
     if (!raw) return res.status(404).json({ error: "Link not found or expired" });
 

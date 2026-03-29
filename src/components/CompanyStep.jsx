@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import Icon from "./Icons";
 import { THEME_LIST, resolveTheme } from "../themes";
 import { analyzeWebsiteCI } from "../ciAnalyzer";
+import { getCO2ByPLZ, BUNDESLAND_FACTORS } from "../data/bundeslandCO2";
 
 const INDUSTRIES = [
   { value: "produktion", label: "Produktion / Fertigung" },
@@ -210,14 +211,40 @@ export default function CompanyStep({ data, onChange, consultant, onConsultantCh
           />
         </div>
         <div className="form-group">
-          <label>Stadt / PLZ</label>
+          <label>Stadt</label>
           <input
             type="text"
             value={d.city || ""}
             onChange={(e) => set("city", e.target.value)}
-            placeholder="z.B. 91235 Hartenstein"
+            placeholder="z.B. Hartenstein"
           />
         </div>
+      </div>
+
+      <div className="grid-2">
+        <div className="form-group">
+          <label>PLZ</label>
+          <input
+            type="text"
+            value={d.plz || ""}
+            onChange={(e) => set("plz", e.target.value.replace(/\D/g, "").slice(0, 5))}
+            placeholder="z.B. 91235"
+            maxLength={5}
+            inputMode="numeric"
+          />
+          {d.plz && d.plz.length === 5 && (() => {
+            const { co2Grid, bundesland } = getCO2ByPLZ(d.plz);
+            return bundesland ? (
+              <div style={{ marginTop: "0.3rem", fontSize: "0.72rem", color: "var(--green)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                <Icon name="pin" size={11} color="var(--green)" />
+                {bundesland} · CO₂-Faktor: {co2Grid.toFixed(3)} t/MWh
+                {co2Grid < 0.382 && <span style={{ color: "var(--green)", fontWeight: 600 }}> (−{Math.round((1 - co2Grid / 0.382) * 100)}% vs. DE-Schnitt)</span>}
+                {co2Grid > 0.382 && <span style={{ color: "var(--red)", fontWeight: 600 }}> (+{Math.round((co2Grid / 0.382 - 1) * 100)}% vs. DE-Schnitt)</span>}
+              </div>
+            ) : null;
+          })()}
+        </div>
+        <div className="form-group" />
       </div>
 
       <div className="grid-2">

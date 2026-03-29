@@ -162,10 +162,40 @@ export async function generatePitchContent(project, onChunk, signal) {
 }
 
 /**
+ * Template-Varianten für unterschiedliche Tonalitäten.
+ * "standard" = ausgewogen, "konservativ" = vorsichtig, "optimistisch" = Chancen-fokussiert
+ */
+const VARIANT_CONFIG = {
+  standard: {
+    taglineSuffix: "Integriertes Energiesystem",
+    headlineSuffix: "Energietransformation",
+    conclusionPrefix: "Das integrierte Energiesystem erreicht",
+    roiPrefix: "",
+    adjectives: ["fundierte", "umfassende", "solide"],
+  },
+  konservativ: {
+    taglineSuffix: "Belastbare Planung · Konservative Annahmen",
+    headlineSuffix: "Energietransformation — Konservatives Szenario",
+    conclusionPrefix: "Bei konservativen Annahmen erreicht das System",
+    roiPrefix: "Mindest-",
+    adjectives: ["konservativ kalkulierte", "belastbare", "minimal angesetzte"],
+  },
+  optimistisch: {
+    taglineSuffix: "Maximales Potenzial · Best-Case-Szenario",
+    headlineSuffix: "Energietransformation — Optimistisches Szenario",
+    conclusionPrefix: "Im Best-Case-Szenario erreicht das System",
+    roiPrefix: "Potenzial-",
+    adjectives: ["ambitionierte", "zukunftsweisende", "hocheffiziente"],
+  },
+};
+
+/**
  * Generate a fallback/template content without AI.
  * Uses calculation results to fill a complete template.
+ * @param {object} project - Project data
+ * @param {string} variant - "standard" | "konservativ" | "optimistisch"
  */
-export function generateFallbackContent(project) {
+export function generateFallbackContent(project, variant = "standard") {
   const calc = calculateAll(project);
   const company = project.company || {};
   const phases = (project.phases || []).filter(p => p.enabled);
@@ -173,6 +203,7 @@ export function generateFallbackContent(project) {
   const colors = ["gold", "green", "green", "gold", "green", "green"];
   const icons = ["search", "sun", "bolt", "fire", "plug", "bolt"];
   const pc = project.phaseConfig || {};
+  const vc = VARIANT_CONFIG[variant] || VARIANT_CONFIG.standard;
 
   const phaseDescriptions = {
     analyse: {
@@ -354,9 +385,9 @@ export function generateFallbackContent(project) {
 
   return {
     intro: {
-      headline: `${company.name || "Ihr Unternehmen"} — Energietransformation`,
+      headline: `${company.name || "Ihr Unternehmen"} — ${vc.headlineSuffix}`,
       subtitle: "Phasenkonzept zur Energietransformation",
-      tagline: `Integriertes Energiesystem · ${company.city || "Deutschland"}`,
+      tagline: `${vc.taglineSuffix} · ${company.city || "Deutschland"}`,
     },
     phases: generatedPhases,
     finalSummary: {
@@ -409,7 +440,7 @@ export function generateFallbackContent(project) {
           paybackStandort: `~${fmtNum(calc.amortisationStandort, 1)} Jahre`,
           bessRevenue: calc.bessErloes > 0 ? `${fmtEuro(calc.bessErloes)}/a` : null,
         },
-        conclusion: `Das integrierte Energiesystem erreicht eine Amortisation von ~${fmtNum(calc.amortisationGesamt, 1)} Jahren bei jährlichen Einsparungen von ${fmtEuro(calc.einsparungStandort)}${calc.bessErloes > 0 ? `. Hinzu kommen ${fmtEuro(calc.bessErloes)}/a aus dem Graustrom-BESS — ein eigenständiges Ertragsmodell mit ${fmtNum(calc.bessRendite, 1)}% Rendite` : ""}. Zusammen entsteht eine Energieplattform mit ${fmtNum(calc.autarkie)}% Autarkie.`,
+        conclusion: `${vc.conclusionPrefix} eine ${vc.roiPrefix}Amortisation von ~${fmtNum(calc.amortisationGesamt, 1)} Jahren bei jährlichen Einsparungen von ${fmtEuro(calc.einsparungStandort)}${calc.bessErloes > 0 ? `. Hinzu kommen ${fmtEuro(calc.bessErloes)}/a aus dem Graustrom-BESS — ein eigenständiges Ertragsmodell mit ${fmtNum(calc.bessRendite, 1)}% Rendite` : ""}. Zusammen entsteht eine Energieplattform mit ${fmtNum(calc.autarkie)}% Autarkie.`,
       },
 
       levers: [

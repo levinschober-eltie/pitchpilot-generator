@@ -21,6 +21,12 @@ export const slugLimiter = new Ratelimit({
   prefix: "rl:slug",
 });
 
+export const interestLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "1 m"),
+  prefix: "rl:interest",
+});
+
 export function getClientIp(req) {
   return (
     req.headers["x-vercel-forwarded-for"]?.split(",")[0]?.trim() ||

@@ -29,9 +29,9 @@ export default function NamedShare() {
           return;
         }
 
-        // Redirect to SharedPresentation with the payload as URL param
+        // Redirect to SharedPresentation with the payload + slug as URL params
         if (!cancelled) {
-          navigate(`/shared?d=${payload}`, { replace: true });
+          navigate(`/shared?d=${payload}&slug=${encodeURIComponent(slug)}`, { replace: true });
         }
       } catch {
         if (!cancelled) setError("Fehler beim Laden. Bitte prüfen Sie Ihre Verbindung.");

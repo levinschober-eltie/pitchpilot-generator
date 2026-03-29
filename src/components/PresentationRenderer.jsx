@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useTransition, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProject, saveProject, createVersion, renameVersion, deleteVersion, restoreVersion, createNamedShareLink } from "../store";
-import { calculateAll, project20Years, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
+import { calculateAll, project20Years, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems, buildSummaryText } from "../calcEngine";
 import { ThemeProvider, useTheme } from "../ThemeContext";
 import Icon from "./Icons";
 import { useFocusTrap } from "../useFocusTrap";
@@ -949,6 +949,19 @@ function VersionManager({ project, onClose, onRestore }) {
             <Icon name={copiedId === "current" ? "check" : "copy"} size={12} />
             {copiedId === "current" ? "Link kopiert!" : "Aktuellen Stand teilen"}
           </button>
+          <button onClick={async () => {
+            const result = await createNamedShareLink(project);
+            if (result) {
+              const name = project.company?.name || "Energietransformation";
+              const msg = `Hallo,\n\nhier ist das interaktive Energiekonzept für ${name}:\n${result.url}\n\nMit freundlichen Grüßen`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+            }
+          }} style={{
+            ...S.pillBtn, padding: "0.35rem 0.8rem",
+            background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.25)", color: "#25D366",
+          }}>
+            <Icon name="phone" size={12} color="#25D366" /> WhatsApp
+          </button>
         </div>
 
         {/* Version List */}
@@ -1055,12 +1068,14 @@ export default function PresentationRenderer() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [configSaved, setConfigSaved] = useState(false);
+  const [summaryCopied, setSummaryCopied] = useState(false);
   const [toast, setToast] = useState(null);
   const [isPending, startTransition] = useTransition();
   const contentRef = useRef(null);
   const originalConfigRef = useRef(null);
   const toastTimerRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const summaryTimerRef = useRef(null);
 
   // Live calculation — recalculates on every config change
   const calc = useMemo(() => project ? calculateAll(project) : null, [project]);
@@ -1081,11 +1096,22 @@ export default function PresentationRenderer() {
     toastTimerRef.current = setTimeout(() => setToast(null), 2500);
   }, []);
 
+  const handleCopySummary = useCallback(() => {
+    if (!calc || !project) return;
+    const text = buildSummaryText(project, calc);
+    navigator.clipboard.writeText(text).then(() => {
+      setSummaryCopied(true);
+      if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+      summaryTimerRef.current = setTimeout(() => setSummaryCopied(false), 2500);
+    }).catch(() => {});
+  }, [project, calc]);
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
     };
   }, []);
 
@@ -1297,6 +1323,14 @@ export default function PresentationRenderer() {
               background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: T.softGray,
             }}>
               <Icon name="chart" size={12} color={T.softGray} /> Szenarien
+            </button>
+            <button onClick={handleCopySummary} style={{
+              ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
+              background: summaryCopied ? `${T.greenLight}20` : "rgba(255,255,255,0.06)",
+              border: `1px solid ${summaryCopied ? `${T.greenLight}40` : "rgba(255,255,255,0.12)"}`,
+              color: summaryCopied ? T.greenLight : T.softGray,
+            }} title="KPIs in Zwischenablage kopieren">
+              <Icon name={summaryCopied ? "check" : "document"} size={12} color={summaryCopied ? T.greenLight : T.softGray} /> {summaryCopied ? "Kopiert!" : "Summary"}
             </button>
             <button onClick={() => setPdfOpen(true)} style={{
               ...S.pillBtn, padding: "0.35rem 1rem", fontSize: "0.82rem", fontWeight: 600,

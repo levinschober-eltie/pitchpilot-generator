@@ -111,6 +111,32 @@ export default async function handler(req, res) {
               dailyViews[day] = (dailyViews[day] || 0) + 1;
             });
 
+          // Phase engagement data
+          let phaseEngagement = null;
+          try {
+            const engagementRaw = await redis.get(`engagement:${slug}`);
+            let events = [];
+            if (typeof engagementRaw === "string") events = JSON.parse(engagementRaw);
+            else if (Array.isArray(engagementRaw)) events = engagementRaw;
+
+            if (Array.isArray(events) && events.length > 0) {
+              const phaseViews = {};
+              const phaseDuration = {};
+              for (const ev of events) {
+                if (ev.phase != null) {
+                  phaseViews[ev.phase] = (phaseViews[ev.phase] || 0) + 1;
+                  phaseDuration[ev.phase] = (phaseDuration[ev.phase] || 0) + (ev.duration || 0);
+                }
+              }
+              // Avg duration per phase
+              const avgDuration = {};
+              for (const [p, total] of Object.entries(phaseDuration)) {
+                avgDuration[p] = Math.round(total / (phaseViews[p] || 1));
+              }
+              phaseEngagement = { phaseViews, avgDuration, totalEvents: events.length };
+            }
+          } catch { /* no engagement data */ }
+
           return {
             slug,
             companyName: companyName || data.companyName,
@@ -121,6 +147,7 @@ export default async function handler(req, res) {
             lastView: views.length > 0 ? views[views.length - 1].ts : null,
             recentViews: recentViews.length,
             dailyViews,
+            phaseEngagement,
           };
         } catch {
           return null;
@@ -128,8 +155,20 @@ export default async function handler(req, res) {
       })
     );
 
+    // Fetch interests/leads for this project
+    let interests = [];
+    try {
+      const interestRaw = await redis.get(`interests:${projectId}`);
+      if (typeof interestRaw === "string") {
+        interests = JSON.parse(interestRaw);
+      } else if (Array.isArray(interestRaw)) {
+        interests = interestRaw;
+      }
+    } catch { /* no interests yet */ }
+
     return res.status(200).json({
       shares: shares.filter(Boolean),
+      interests: Array.isArray(interests) ? interests : [],
     });
   } catch (err) {
     console.error("Stats fetch failed:", err);

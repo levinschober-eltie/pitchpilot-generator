@@ -3,9 +3,11 @@
  * Full Eckart-level calculations with NaN guards, 20-year projection, Tilgungsplan.
  */
 
+import { getCO2ByPLZ } from "./data/bundeslandCO2";
+
 /* ── Physical / Market Constants ── */
 const PV_YIELD = 950;          // kWh/kWp/a (Bavaria average)
-const CO2_GRID = 0.382;        // t CO₂/MWh (DE grid mix 2024)
+const CO2_GRID_DEFAULT = 0.382; // t CO₂/MWh (DE grid mix 2024, Fallback)
 const CO2_GAS = 0.201;         // t CO₂/MWh
 const CO2_DIESEL = 2.65;       // kg CO₂/l
 const EEG_TARIFF = 0.075;      // €/kWh
@@ -58,12 +60,16 @@ export function calculateAll(project) {
   const phases = project.phases || [];
   const mob = pc.ladeinfra || {};
   const market = project.market || {};
+  const company = project.company || {};
 
   const stromverbrauch = Math.max(0, e.stromverbrauch ?? 10000);
   const gasverbrauch = Math.max(0, e.gasverbrauch ?? 5000);
   const strompreis = Math.max(0, e.strompreis ?? 22); // ct/kWh
   const gaspreis = Math.max(0, e.gaspreis ?? 7);
   const dieselpreis = Math.max(0, mob.dieselpreis ?? 1.55);
+
+  /* ── Regionaler CO₂-Faktor (PLZ-basiert) ── */
+  const { co2Grid: CO2_GRID, bundesland: co2Bundesland } = getCO2ByPLZ(company.plz, CO2_GRID_DEFAULT);
 
   /* ── PV ── */
   const pvConf = pc.pv || {};
@@ -240,6 +246,7 @@ export function calculateAll(project) {
     ekBetrag, kreditBetrag, zinsTilgungsfrei, annuitaet,
     totalZinskosten, cfNachSchuldendienst, ekRendite, dscr, tilgungsJahre,
     dvRevenue, dvBessRevenue, procurementSavings, hasMarket,
+    co2Bundesland, co2GridFactor: CO2_GRID,
   };
 }
 
@@ -402,6 +409,50 @@ export function fmtEuro(n) {
   if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1).replace(".", ",")} Mio. €`;
   if (Math.abs(n) >= 1e3) return `${Math.round(n / 1e3).toLocaleString("de-DE")} T€`;
   return `${Math.round(n).toLocaleString("de-DE")} €`;
+}
+
+/**
+ * Build formatted plain-text summary for clipboard (Emails, CRM, Quick-Notes).
+ * @param {object} project - Project data
+ * @param {object} calc - Result of calculateAll()
+ * @returns {string} Formatted text
+ */
+export function buildSummaryText(project, calc) {
+  const c = project.company || {};
+  const lines = [];
+  lines.push(`━━━ ${c.name || "Energietransformation"} ━━━`);
+  if (c.city) lines.push(`Standort: ${c.city}${c.plz ? ` (${c.plz})` : ""}`);
+  lines.push("");
+  lines.push("── Überblick ──");
+  lines.push(`Gesamt-PV: ${fmtNum(calc.totalPV, 1)} MWp`);
+  lines.push(`PV-Erzeugung: ${fmtNum(calc.pvErzeugung)} MWh/a`);
+  lines.push(`Eigenverbrauch: ${calc.eigenverbrauchsquote}%`);
+  lines.push(`Autarkie: ${calc.autarkie}%`);
+  lines.push("");
+  lines.push("── Wirtschaftlichkeit ──");
+  lines.push(`Gesamtinvestition: ${fmtEuro(calc.investGesamt)}`);
+  lines.push(`Jährlicher Ertrag: ${fmtEuro(calc.gesamtertrag)}/a`);
+  lines.push(`Amortisation: ${fmtNum(calc.amortisationGesamt, 1)} Jahre`);
+  if (calc.ekRendite) lines.push(`EK-Rendite: ${fmtNum(calc.ekRendite, 1)}%`);
+  lines.push("");
+  lines.push("── CO₂-Einsparung ──");
+  lines.push(`Gesamt: ~${fmtNum(calc.co2Gesamt)} t/a`);
+  if (calc.co2Strom) lines.push(`  Strom (PV): −${fmtNum(calc.co2Strom)} t`);
+  if (calc.co2Waerme) lines.push(`  Wärme (WP): −${fmtNum(calc.co2Waerme)} t`);
+  if (calc.co2PKW + calc.co2LKW > 0) lines.push(`  Mobilität: −${fmtNum(calc.co2PKW + calc.co2LKW)} t`);
+  if (calc.co2Bundesland) lines.push(`  (Regionaler CO₂-Faktor: ${calc.co2GridFactor.toFixed(3)} t/MWh — ${calc.co2Bundesland})`);
+  lines.push(`CO₂-Kosten vermieden: ${fmtEuro(calc.co2Kosten)}/a`);
+  lines.push("");
+  lines.push("── Einsparungen ──");
+  if (calc.stromEinsparung) lines.push(`Strom: ${fmtEuro(calc.stromEinsparung)}/a`);
+  if (calc.einspeiseErloese) lines.push(`Einspeisung: ${fmtEuro(calc.einspeiseErloese)}/a`);
+  if (calc.peakShavingSavings) lines.push(`Peak-Shaving: ${fmtEuro(calc.peakShavingSavings)}/a`);
+  if (calc.gasEinsparung) lines.push(`Gas: ${fmtEuro(calc.gasEinsparung)}/a`);
+  if (calc.mobilitaetEinsparung) lines.push(`Mobilität: ${fmtEuro(calc.mobilitaetEinsparung)}/a`);
+  if (calc.bessErloes) lines.push(`BESS-Erlöse: ${fmtEuro(calc.bessErloes)}/a`);
+  lines.push("");
+  lines.push(`Erstellt mit PitchPilot · ${new Date().toLocaleDateString("de-DE")}`);
+  return lines.join("\n");
 }
 
 /** Format number */

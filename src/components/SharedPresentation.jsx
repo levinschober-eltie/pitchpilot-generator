@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useTransition, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { decodeSharePayload, saveCustomerVersion, getProject } from "../store";
-import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
+import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems, buildSummaryText } from "../calcEngine";
 import { C } from "../colors";
 import { ThemeProvider, useTheme } from "../ThemeContext";
 import Icon from "./Icons";
@@ -49,9 +49,89 @@ function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
 }
 
 
+/* ── Interest Form for leads ── */
+function InterestForm({ slug, projectId, T, S }) {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) return;
+    setStatus("sending");
+    try {
+      const resp = await fetch("/api/interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, projectId, ...form }),
+      });
+      setStatus(resp.ok ? "sent" : "error");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  if (status === "sent") {
+    return (
+      <div style={{
+        padding: "1.5rem 2rem", textAlign: "center",
+        background: `linear-gradient(135deg, ${T.greenLight}10, ${T.greenLight}05)`,
+        border: `1px solid ${T.greenLight}30`, borderRadius: 12,
+      }}>
+        <Icon name="check" size={28} color={T.greenLight} />
+        <div style={{ fontFamily: T.font, fontSize: "1rem", fontWeight: 700, color: T.greenLight, marginTop: "0.5rem" }}>
+          Vielen Dank für Ihr Interesse!
+        </div>
+        <div style={{ fontFamily: T.font, fontSize: "0.8rem", color: T.softGray, marginTop: "0.25rem" }}>
+          Ihr Berater wird sich zeitnah bei Ihnen melden.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{
+      padding: "1.25rem", borderRadius: 12,
+      background: `linear-gradient(135deg, ${T.gold}08, ${T.gold}03)`,
+      border: `1px solid ${T.gold}25`,
+    }}>
+      <div style={{ fontFamily: T.font, fontSize: "0.85rem", fontWeight: 700, color: T.gold, marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <Icon name="mail" size={16} color={T.gold} /> Interesse melden
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <input type="text" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+          placeholder="Name *" required
+          style={{ padding: "0.5rem 0.7rem", borderRadius: 6, border: `1px solid ${T.gold}30`, background: "rgba(255,255,255,0.05)", color: T.warmWhite, fontFamily: T.font, fontSize: "0.8rem", outline: "none" }}
+        />
+        <input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+          placeholder="E-Mail *" required
+          style={{ padding: "0.5rem 0.7rem", borderRadius: 6, border: `1px solid ${T.gold}30`, background: "rgba(255,255,255,0.05)", color: T.warmWhite, fontFamily: T.font, fontSize: "0.8rem", outline: "none" }}
+        />
+      </div>
+      <input type="tel" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
+        placeholder="Telefon (optional)"
+        style={{ width: "100%", padding: "0.5rem 0.7rem", borderRadius: 6, border: `1px solid ${T.gold}30`, background: "rgba(255,255,255,0.05)", color: T.warmWhite, fontFamily: T.font, fontSize: "0.8rem", marginBottom: "0.5rem", outline: "none", boxSizing: "border-box" }}
+      />
+      <textarea value={form.message} onChange={(e) => setForm(f => ({ ...f, message: e.target.value }))}
+        placeholder="Nachricht (optional)" rows={2}
+        style={{ width: "100%", padding: "0.5rem 0.7rem", borderRadius: 6, border: `1px solid ${T.gold}30`, background: "rgba(255,255,255,0.05)", color: T.warmWhite, fontFamily: T.font, fontSize: "0.8rem", resize: "vertical", marginBottom: "0.5rem", outline: "none", boxSizing: "border-box" }}
+      />
+      <button type="submit" disabled={status === "sending"} style={{
+        ...S.pillBtn, padding: "0.5rem 1.5rem", width: "100%", justifyContent: "center",
+        background: `linear-gradient(135deg, ${T.gold}, ${T.goldLight})`,
+        color: T.navyDeep, border: "none", fontSize: "0.8rem",
+        opacity: status === "sending" ? 0.7 : 1,
+      }}>
+        <Icon name="mail" size={14} />
+        {status === "sending" ? "Wird gesendet..." : status === "error" ? "Fehler — erneut versuchen" : "Interesse melden"}
+      </button>
+    </form>
+  );
+}
+
 export default function SharedPresentation() {
   const [searchParams] = useSearchParams();
   const encoded = searchParams.get("d");
+  const slug = searchParams.get("slug") || null;
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -154,13 +234,14 @@ export default function SharedPresentation() {
         saved={saved}
         saveError={saveError}
         isPending={isPending}
+        slug={slug}
       />
     </ThemeProvider>
   );
 }
 
 /* ── Inner component that consumes the theme ── */
-function SharedPresentationInner({ project, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError, isPending }) {
+function SharedPresentationInner({ project, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError, isPending, slug }) {
   const T = useTheme();
   const S = useMemo(() => mkS(T), [T]);
 
@@ -267,16 +348,33 @@ function SharedPresentationInner({ project, calc, heroCards, configOpen, setConf
       saved={saved}
       saveError={saveError}
       isPending={isPending}
+      slug={slug}
     />
   );
 }
 
 /* ── Full presentation view (extracted for readability) ── */
-function SharedPresentationFull({ project, gen, phases, company, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError, isPending }) {
+function SharedPresentationFull({ project, gen, phases, company, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError, isPending, slug }) {
   const T = useTheme();
   const S = useMemo(() => mkS(T), [T]);
   const [active, setActive] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
+  const [summaryCopied, setSummaryCopied] = useState(false);
+  const summaryTimerRef = useRef(null);
+
+  const handleCopySummary = useCallback(() => {
+    if (!calc) return;
+    const text = buildSummaryText(project, calc);
+    navigator.clipboard.writeText(text).then(() => {
+      setSummaryCopied(true);
+      if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+      summaryTimerRef.current = setTimeout(() => setSummaryCopied(false), 2500);
+    }).catch(() => {});
+  }, [project, calc]);
+
+  useEffect(() => {
+    return () => { if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current); };
+  }, []);
   const totalSlides = phases.length + 1;
   const isFinal = active === phases.length;
   const currentPhase = isFinal ? null : phases[active];
@@ -285,6 +383,44 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
   const currentPhaseKey = !isFinal && enabledPhases[active] ? enabledPhases[active].key : null;
   const liveKpis = currentPhaseKey && calc ? getPhaseCalcItems(currentPhaseKey, calc) : null;
   const sliderPct = totalSlides > 1 ? (active / (totalSlides - 1)) * 100 : 0;
+
+  // Phase engagement tracking — track time spent per phase
+  const phaseStartRef = useRef(Date.now());
+  const prevPhaseRef = useRef(active);
+
+  useEffect(() => {
+    if (!slug || showIntro) return;
+
+    // When phase changes, report duration of previous phase
+    const prev = prevPhaseRef.current;
+    const duration = Math.round((Date.now() - phaseStartRef.current) / 1000);
+
+    if (duration >= 2) { // Only track if > 2 seconds
+      fetch(`/api/p/${encodeURIComponent(slug)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phase: prev, duration, action: "view" }),
+      }).catch(() => {});
+    }
+
+    phaseStartRef.current = Date.now();
+    prevPhaseRef.current = active;
+  }, [active, slug, showIntro]);
+
+  // Track last phase on unmount
+  useEffect(() => {
+    return () => {
+      if (!slug) return;
+      const duration = Math.round((Date.now() - phaseStartRef.current) / 1000);
+      if (duration >= 2) {
+        // Use sendBeacon for reliability on page unload
+        const data = JSON.stringify({ phase: prevPhaseRef.current, duration, action: "view" });
+        try {
+          navigator.sendBeacon(`/api/p/${encodeURIComponent(slug)}`, new Blob([data], { type: "application/json" }));
+        } catch { /* fallback ignored */ }
+      }
+    };
+  }, [slug]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -384,6 +520,14 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
             Phasenkonzept zur Energietransformation
           </h1>
           <div style={{ display: "flex", gap: "0.3rem", marginTop: "0.6rem" }}>
+            <button onClick={handleCopySummary} style={{
+              ...S.pillBtn, padding: "0.3rem 0.7rem",
+              background: summaryCopied ? `${T.greenLight}20` : "rgba(255,255,255,0.06)",
+              border: `1px solid ${summaryCopied ? `${T.greenLight}40` : "rgba(255,255,255,0.12)"}`,
+              color: summaryCopied ? T.greenLight : T.softGray,
+            }} title="KPIs in Zwischenablage kopieren">
+              <Icon name={summaryCopied ? "check" : "copy"} size={12} /> {summaryCopied ? "Kopiert!" : "Summary"}
+            </button>
             <button onClick={() => setConfigOpen(o => !o)} style={{
               ...S.pillBtn, padding: "0.3rem 0.7rem",
               background: configOpen ? `${T.gold}20` : "rgba(255,255,255,0.06)",
@@ -553,6 +697,13 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           </div>
         </div>
       </div>
+
+      {/* Interest Form — shown on final slide */}
+      {isFinal && (
+        <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 2rem 2rem" }}>
+          <InterestForm slug={slug} projectId={project.sourceProjectId} T={T} S={S} />
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{

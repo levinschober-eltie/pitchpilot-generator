@@ -9,6 +9,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState(null);
   const [mode, setMode] = useState("auto"); // "auto" | "ai" | "template"
+  const [templateVariant, setTemplateVariant] = useState("standard"); // "standard" | "konservativ" | "optimistisch"
   const abortRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -26,7 +27,7 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
     if (!useAI) {
       // Template-based generation (no API needed)
       try {
-        const content = generateFallbackContent(project);
+        const content = generateFallbackContent(project, templateVariant);
         onGenerated(content);
       } catch (e) {
         setError(e.message);
@@ -133,6 +134,32 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
           <p style={{ fontSize: "0.75rem", color: "var(--yellow)", marginTop: "0.75rem" }}>
             Für AI-Generierung: API-Key unter Einstellungen hinterlegen.
           </p>
+        )}
+
+        {/* Template variant selector — shown when template mode */}
+        {(mode === "template" || (mode === "auto" && !apiReady)) && (
+          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
+            <div style={{ fontWeight: 600, fontSize: "0.75rem", color: "var(--gray-text)", marginBottom: "0.5rem" }}>
+              Template-Variante
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {[
+                { key: "standard", label: "Standard", desc: "Ausgewogene Darstellung", icon: "target" },
+                { key: "konservativ", label: "Konservativ", desc: "Vorsichtige Annahmen", icon: "shield" },
+                { key: "optimistisch", label: "Optimistisch", desc: "Best-Case-Potenzial", icon: "chartUp" },
+              ].map((v) => (
+                <button
+                  key={v.key}
+                  className={`btn ${templateVariant === v.key ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setTemplateVariant(v.key)}
+                  style={{ flex: "1 1 120px" }}
+                >
+                  <Icon name={v.icon} size={12} /> {v.label}
+                  <span style={{ fontSize: "0.65rem", opacity: 0.7, display: "block", fontWeight: 400, marginTop: "0.1rem" }}>{v.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
