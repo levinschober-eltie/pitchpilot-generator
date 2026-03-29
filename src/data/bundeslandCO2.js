@@ -8,67 +8,74 @@
  */
 
 const BUNDESLAND_DATA = [
+  // WICHTIG: Spezifischere Ranges (Stadtstaaten) ZUERST — first-match wins!
   // PLZ-Start, PLZ-Ende, Bundesland, CO₂-Faktor (t/MWh)
-  // Schleswig-Holstein — hoher Windanteil
-  [20000, 21149, "Schleswig-Holstein", 0.195],
-  [22000, 25999, "Schleswig-Holstein", 0.195],
-  // Hamburg
-  [20149, 21149, "Hamburg", 0.340],
+
+  // ── Stadtstaaten (spezifisch, vor breiten Bereichen) ──
+  // Berlin
+  [10000, 14199, "Berlin", 0.340],
+  // Hamburg (20xxx-22xxx Teilbereiche)
+  [20000, 20999, "Hamburg", 0.340],
+  [21029, 21149, "Hamburg", 0.340],
   [21200, 21999, "Hamburg", 0.340],
   [22000, 22769, "Hamburg", 0.340],
-  // Niedersachsen — viel Wind
-  [26000, 27999, "Niedersachsen", 0.260],
-  [28000, 29999, "Niedersachsen", 0.260],
-  [30000, 31999, "Niedersachsen", 0.260],
-  [37000, 37999, "Niedersachsen", 0.260],
-  [48000, 49999, "Niedersachsen", 0.260],
-  // Bremen
+  // Bremen (28xxx)
   [28000, 28999, "Bremen", 0.310],
+  // Saarland (661xx–668xx Kern-PLZ)
+  [66000, 66999, "Saarland", 0.370],
+
+  // ── Flächenländer ──
+  // Brandenburg
+  [3000, 3999, "Brandenburg", 0.390],
+  [14400, 16999, "Brandenburg", 0.390],
+  [15000, 15999, "Brandenburg", 0.390],
   // Mecklenburg-Vorpommern — Wind
   [17000, 19999, "Mecklenburg-Vorpommern", 0.210],
   [23900, 23999, "Mecklenburg-Vorpommern", 0.210],
-  // Brandenburg — hoher Braunkohle+Wind-Mix
-  [14400, 16999, "Brandenburg", 0.390],
-  [3000, 3999, "Brandenburg", 0.390],
-  [15000, 15999, "Brandenburg", 0.390],
-  // Berlin
-  [10000, 14199, "Berlin", 0.340],
-  // Sachsen-Anhalt — Wind + Braunkohle
-  [6000, 6999, "Sachsen-Anhalt", 0.350],
-  [38800, 39999, "Sachsen-Anhalt", 0.350],
-  // Sachsen — Braunkohle dominiert
-  [1000, 2999, "Sachsen", 0.430],
-  [4000, 4999, "Sachsen", 0.430],
-  [7900, 9999, "Sachsen", 0.430],
-  // Thüringen
-  [5000, 5999, "Thüringen", 0.350],
-  [7300, 7899, "Thüringen", 0.350],
-  [98000, 99999, "Thüringen", 0.350],
+  // Schleswig-Holstein — hoher Windanteil (nach Hamburg)
+  [21000, 21028, "Schleswig-Holstein", 0.195],
+  [21150, 21199, "Schleswig-Holstein", 0.195],
+  [22770, 25999, "Schleswig-Holstein", 0.195],
+  // Niedersachsen — viel Wind (nach Bremen)
+  [26000, 27999, "Niedersachsen", 0.260],
+  [29000, 29999, "Niedersachsen", 0.260],
+  [30000, 31999, "Niedersachsen", 0.260],
+  [37000, 37999, "Niedersachsen", 0.260],
+  [48000, 49999, "Niedersachsen", 0.260],
+  // Nordrhein-Westfalen
+  [32000, 33999, "Nordrhein-Westfalen", 0.400],
+  [40000, 42999, "Nordrhein-Westfalen", 0.400],
+  [44000, 47999, "Nordrhein-Westfalen", 0.400],
+  [50000, 53999, "Nordrhein-Westfalen", 0.400],
+  [57000, 59999, "Nordrhein-Westfalen", 0.400],
   // Hessen
   [34000, 36999, "Hessen", 0.350],
   [60000, 65999, "Hessen", 0.350],
   [68500, 68999, "Hessen", 0.350],
-  // Nordrhein-Westfalen — Kohle, aber viel EE-Ausbau
-  [32000, 33999, "Nordrhein-Westfalen", 0.400],
-  [40000, 42999, "Nordrhein-Westfalen", 0.400],
-  [44000, 48999, "Nordrhein-Westfalen", 0.400],
-  [50000, 53999, "Nordrhein-Westfalen", 0.400],
-  [57000, 59999, "Nordrhein-Westfalen", 0.400],
-  // Rheinland-Pfalz
+  // Sachsen-Anhalt
+  [6000, 6999, "Sachsen-Anhalt", 0.350],
+  [38800, 39999, "Sachsen-Anhalt", 0.350],
+  // Rheinland-Pfalz (nach Saarland)
   [54000, 56999, "Rheinland-Pfalz", 0.330],
-  [66000, 67999, "Rheinland-Pfalz", 0.330],
+  [67000, 67999, "Rheinland-Pfalz", 0.330],
   [76700, 76899, "Rheinland-Pfalz", 0.330],
-  // Saarland
-  [66000, 66999, "Saarland", 0.370],
-  // Baden-Württemberg — viel Solar, wenig Wind
+  // Thüringen
+  [5000, 5999, "Thüringen", 0.350],
+  [7300, 7899, "Thüringen", 0.350],
+  [98000, 99999, "Thüringen", 0.350],
+  // Baden-Württemberg
   [68000, 68499, "Baden-Württemberg", 0.340],
   [69000, 69999, "Baden-Württemberg", 0.340],
   [70000, 76699, "Baden-Württemberg", 0.340],
   [77000, 79999, "Baden-Württemberg", 0.340],
   [88000, 89999, "Baden-Württemberg", 0.340],
-  // Bayern — Solar stark, aber auch Gaskraftwerke
+  // Bayern
   [80000, 87999, "Bayern", 0.350],
   [90000, 97999, "Bayern", 0.350],
+  // Sachsen — Braunkohle dominiert
+  [1000, 2999, "Sachsen", 0.430],
+  [4000, 4999, "Sachsen", 0.430],
+  [7900, 9999, "Sachsen", 0.430],
 ];
 
 /**

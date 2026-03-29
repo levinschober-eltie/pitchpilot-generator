@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useTransition, lazy, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, useTransition, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { decodeSharePayload, saveCustomerVersion, getProject } from "../store";
 import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems, buildSummaryText } from "../calcEngine";

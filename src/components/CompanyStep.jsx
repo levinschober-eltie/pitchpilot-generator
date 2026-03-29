@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import Icon from "./Icons";
 import { THEME_LIST, resolveTheme } from "../themes";
 import { analyzeWebsiteCI } from "../ciAnalyzer";
-import { getCO2ByPLZ, BUNDESLAND_FACTORS } from "../data/bundeslandCO2";
+import { getCO2ByPLZ } from "../data/bundeslandCO2";
 
 const INDUSTRIES = [
   { value: "produktion", label: "Produktion / Fertigung" },
