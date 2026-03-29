@@ -11,6 +11,10 @@ import { CONFIG_GROUPS } from "../sliderConfig";
 const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
 const PdfExport = lazy(() => import("./PdfExport"));
 const PhaseVisual = lazy(() => import("./PhaseVisuals"));
+const ScenarioComparison = lazy(() => import("./ScenarioComparison"));
+
+import BenchmarkCards from "./BenchmarkCards";
+import FoerdermittelCards from "./FoerdermittelCards";
 
 /* ── Style Constants ── */
 const F = "Calibri, sans-serif";
@@ -448,7 +452,7 @@ function InvestDonut({ calc, phases }) {
 }
 
 /* ── Final Summary ── */
-function FinalSummary({ summary, calc, heroCards, color, project, isPending }) {
+function FinalSummary({ summary, calc, heroCards, color, project, isPending, enabledPhaseKeys, investByPhase }) {
   const T = useTheme();
   if (!summary && !calc) return null;
   const green = T.greenLight || T.green;
@@ -488,6 +492,9 @@ function FinalSummary({ summary, calc, heroCards, color, project, isPending }) {
         </div>
       )}
 
+      {/* Branchen-Benchmark */}
+      <BenchmarkCards calc={calc} industry={project?.company?.industry} />
+
       {/* Ihre Gesamtberechnung (live calc) */}
       {calc && (
         <div style={{ marginBottom: "1.5rem" }}>
@@ -511,6 +518,12 @@ function FinalSummary({ summary, calc, heroCards, color, project, isPending }) {
           </div>
         </div>
       )}
+
+      {/* Fördermittel & Finanzierung */}
+      <FoerdermittelCards
+        enabledPhaseKeys={enabledPhaseKeys}
+        investByPhase={investByPhase}
+      />
 
       {/* System KPIs */}
       {summary?.systemKpis?.length > 0 && (
@@ -1040,6 +1053,7 @@ export default function PresentationRenderer() {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [scenarioOpen, setScenarioOpen] = useState(false);
   const [configSaved, setConfigSaved] = useState(false);
   const [toast, setToast] = useState(null);
   const [isPending, startTransition] = useTransition();
@@ -1278,6 +1292,12 @@ export default function PresentationRenderer() {
             }}>
               <Icon name="copy" size={12} color={T.softGray} /> Versionen{project.versions?.length ? ` (${project.versions.length})` : ""}
             </button>
+            <button onClick={() => setScenarioOpen(true)} style={{
+              ...S.pillBtn, padding: "0.3rem 0.7rem", fontSize: "0.7rem",
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: T.softGray,
+            }}>
+              <Icon name="chart" size={12} color={T.softGray} /> Szenarien
+            </button>
             <button onClick={() => setPdfOpen(true)} style={{
               ...S.pillBtn, padding: "0.35rem 1rem", fontSize: "0.82rem", fontWeight: 600,
               background: `${T.gold}15`, border: `1px solid ${T.gold}40`, color: T.goldLight,
@@ -1426,7 +1446,11 @@ export default function PresentationRenderer() {
         <div className="pitch-grid" style={{ display: "grid", gridTemplateColumns: "5fr 4fr", gap: "1.25rem", alignItems: "start", minWidth: 0 }}>
           <div ref={contentRef} style={{ minWidth: 0, animation: "fadeSlideIn 0.5s ease forwards" }}>
             {isFinal ? (
-              <FinalSummary summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} project={project} isPending={isPending} />
+              <FinalSummary
+                summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} project={project} isPending={isPending}
+                enabledPhaseKeys={enabledPhases.map(p => p.key)}
+                investByPhase={{ pv: calc?.investPhase2, speicher: calc?.investPhase3, waerme: calc?.investPhase4, ladeinfra: calc?.investPhase5, bess: calc?.investPhase6, analyse: calc?.investPhase1 }}
+              />
             ) : (
               <PhaseContent phase={currentPhase} color={currentColor} liveKpis={liveKpis} />
             )}
@@ -1643,6 +1667,11 @@ export default function PresentationRenderer() {
           </div>
         </div>
       )}
+
+      {/* Scenario Comparison Modal */}
+      <Suspense fallback={null}>
+        {scenarioOpen && <ScenarioComparison project={project} onClose={() => setScenarioOpen(false)} />}
+      </Suspense>
 
       {/* PDF Modal */}
       <Suspense fallback={null}>

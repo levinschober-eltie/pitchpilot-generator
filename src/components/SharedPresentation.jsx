@@ -8,6 +8,10 @@ import Icon from "./Icons";
 import { getVal, setVal } from "../utils";
 import { CONFIG_GROUPS } from "../sliderConfig";
 
+import ConsultantWatermark from "./ConsultantWatermark";
+import BenchmarkCards from "./BenchmarkCards";
+import FoerdermittelCards from "./FoerdermittelCards";
+
 const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
 const PhaseVisual = lazy(() => import("./PhaseVisuals"));
 
@@ -517,6 +521,7 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
                     })}
                   </div>
                 )}
+                <BenchmarkCards calc={calc} industry={project.company?.industry} />
                 <div style={{ ...S.sectionHeading, color: T.gold }}>Ihre Gesamtberechnung</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
                   {[
@@ -531,6 +536,10 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
                     </div>
                   ))}
                 </div>
+                <FoerdermittelCards
+                  enabledPhaseKeys={phases.filter(p => p.enabled).map(p => p.key)}
+                  investByPhase={{ pv: calc.investPhase2, speicher: calc.investPhase3, waerme: calc.investPhase4, ladeinfra: calc.investPhase5, bess: calc.investPhase6 }}
+                />
               </div>
             )}
           </div>
@@ -618,6 +627,9 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
           </div>
         </div>
       )}
+
+      {/* Consultant Watermark */}
+      {project.consultant && <ConsultantWatermark consultant={project.consultant} />}
 
       <style>{`
         @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

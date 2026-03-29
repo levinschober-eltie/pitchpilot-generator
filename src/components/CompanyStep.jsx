@@ -292,6 +292,17 @@ export default function CompanyStep({ data, onChange, consultant, onConsultantCh
             />
           </div>
           <div className="form-group">
+            <label>Telefon</label>
+            <input
+              type="tel"
+              value={con.phone || ""}
+              onChange={(e) => setCon("phone", e.target.value)}
+              placeholder="z.B. +49 171 1234567"
+            />
+          </div>
+        </div>
+        <div className="grid-2">
+          <div className="form-group">
             <label>Titel / Rolle</label>
             <input
               type="text"
@@ -300,6 +311,7 @@ export default function CompanyStep({ data, onChange, consultant, onConsultantCh
               placeholder="z.B. Energieberater"
             />
           </div>
+          <div className="form-group" />
         </div>
       </div>
 
