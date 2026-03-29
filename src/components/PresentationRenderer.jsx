@@ -345,9 +345,9 @@ function PhaseContent({ phase, color, liveKpis }) {
 }
 
 /* ── 20-Year Cashflow SVG Chart ── */
-function CashflowChart({ project }) {
+function CashflowChart({ project, calc }) {
   const T = useTheme();
-  const data = useMemo(() => project20Years(project), [project]);
+  const data = useMemo(() => project20Years(project, calc), [project, calc]);
   if (!data?.rows?.length) return null;
 
   const W = 560, H = 200, pad = { t: 20, r: 15, b: 28, l: 55 };
@@ -653,7 +653,7 @@ function FinalSummary({ summary, calc, heroCards, color, project }) {
       )}
 
       {/* Cashflow Chart */}
-      {project && <CashflowChart project={project} />}
+      {project && <CashflowChart project={project} calc={calc} />}
 
       {/* Investment Donut */}
       {calc && project?.phases && <InvestDonut calc={calc} phases={project.phases.filter(p => p.enabled)} />}

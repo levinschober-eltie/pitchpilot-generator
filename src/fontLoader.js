@@ -76,7 +76,7 @@ export async function loadThemeFont(fontFamily) {
     link.onload = resolve;
     link.onerror = () => {
       // Don't block on font load failure — graceful degradation
-      console.warn(`[fontLoader] Could not load Google Font: ${fontName}`);
+      if (import.meta.env.DEV) console.warn(`[fontLoader] Could not load Google Font: ${fontName}`);
       resolve();
     };
     document.head.appendChild(link);

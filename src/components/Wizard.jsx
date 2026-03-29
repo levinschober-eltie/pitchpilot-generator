@@ -183,7 +183,7 @@ export default function Wizard() {
       </div>
 
       {/* PDF Modal */}
-      <Suspense fallback={null}>
+      <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Wird geladen…</div>}>
         {pdfOpen && <PdfExport project={project} onClose={() => setPdfOpen(false)} />}
       </Suspense>
     </div>

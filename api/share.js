@@ -65,6 +65,12 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // CSRF-Schutz: Nur JSON-Requests erlauben (Forms senden application/x-www-form-urlencoded)
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.includes("application/json")) {
+    return res.status(415).json({ error: "Content-Type must be application/json" });
+  }
+
   // Rate limiting (Upstash sliding window)
   const ip = getClientIp(req);
   const { success, limit, remaining, reset } = await shareLimiter.limit(ip);

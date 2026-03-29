@@ -786,7 +786,6 @@ export default function PdfExport({ project, onClose }) {
       try {
         generatePdf(project, selected);
       } catch (err) {
-        console.error("PDF generation error:", err);
         alert("Fehler beim PDF-Export. Bitte erneut versuchen.");
       } finally {
         setGenerating(false);
