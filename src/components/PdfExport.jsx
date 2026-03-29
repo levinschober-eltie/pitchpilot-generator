@@ -779,12 +779,23 @@ export default function PdfExport({ project, onClose }) {
 
   const selectedCount = SECTIONS.filter(s => selected[s.key]).length;
 
+  const [exported, setExported] = useState(false);
+  const exportTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (exportTimerRef.current) clearTimeout(exportTimerRef.current); };
+  }, []);
+
   const handleGenerate = useCallback(() => {
     setGenerating(true);
+    setExported(false);
     // defer to next tick so UI updates before blocking work
     setTimeout(() => {
       try {
         generatePdf(project, selected);
+        setExported(true);
+        if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+        exportTimerRef.current = setTimeout(() => setExported(false), 4000);
       } catch (err) {
         alert("Fehler beim PDF-Export. Bitte erneut versuchen.");
       } finally {
@@ -856,19 +867,28 @@ export default function PdfExport({ project, onClose }) {
         {/* Footer */}
         <div style={S.footer}>
           <div style={S.previewText}>
-            <span style={S.previewCount}>{selectedCount}</span> von {SECTIONS.length} Abschnitten ausgewählt
+            {exported ? (
+              <span style={{ color: T.greenLight || "#4CAF7D", fontWeight: 600 }}>
+                <Icon name="check" size={12} color={T.greenLight || "#4CAF7D"} /> PDF wurde im neuen Tab geöffnet
+              </span>
+            ) : (
+              <>
+                <span style={S.previewCount}>{selectedCount}</span> von {SECTIONS.length} Abschnitten ausgewählt
+              </>
+            )}
           </div>
           <button
             style={{
               ...S.generateBtn,
+              background: exported ? (T.greenLight || "#4CAF7D") : T.gold,
               opacity: generating ? 0.7 : 1,
               cursor: generating ? "not-allowed" : "pointer",
             }}
             onClick={handleGenerate}
             disabled={generating}
           >
-            <Icon name="download" size={16} color={T.navyDeep} />
-            {generating ? "Wird erstellt…" : "PDF erstellen"}
+            <Icon name={exported ? "check" : "download"} size={16} color={T.navyDeep} />
+            {generating ? "Wird erstellt..." : exported ? "Erneut erstellen" : "PDF erstellen"}
           </button>
         </div>
       </div>

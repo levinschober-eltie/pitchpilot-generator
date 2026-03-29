@@ -185,7 +185,19 @@ const ProjectCard = memo(function ProjectCard({ project: p, copiedId, shareLoadi
           </button>
         </div>
       </div>
-      {p.updatedAt && (
+      {/* "Kopiert!" Inline-Feedback */}
+      {copiedId === p.id && (
+        <div style={{
+          marginTop: "0.5rem", padding: "0.3rem 0.6rem", borderRadius: 6,
+          background: "rgba(45,140,78,0.08)", border: "1px solid rgba(45,140,78,0.2)",
+          fontSize: "0.72rem", fontWeight: 600, color: "var(--green)",
+          display: "flex", alignItems: "center", gap: "0.3rem",
+          animation: "fadeIn 0.2s ease forwards",
+        }}>
+          <Icon name="check" size={12} color="var(--green)" /> Link in Zwischenablage kopiert
+        </div>
+      )}
+      {p.updatedAt && copiedId !== p.id && (
         <div className="project-meta" style={{ marginTop: "0.75rem", fontSize: "0.7rem" }}>
           Zuletzt: {new Date(p.updatedAt).toLocaleDateString("de-DE")}
         </div>

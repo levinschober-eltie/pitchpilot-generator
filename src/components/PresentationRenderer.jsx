@@ -874,11 +874,21 @@ function VersionManager({ project, onClose, onRestore }) {
 
   useFocusTrap(trapRef);
 
+  const [versionCreated, setVersionCreated] = useState(false);
+  const versionTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (versionTimerRef.current) clearTimeout(versionTimerRef.current); };
+  }, []);
+
   const handleNewVersion = () => {
     const name = prompt("Versionsname:", `Version ${versions.length + 1}`);
     if (name) {
       createVersion(project.id, name, "owner");
       refresh();
+      setVersionCreated(true);
+      if (versionTimerRef.current) clearTimeout(versionTimerRef.current);
+      versionTimerRef.current = setTimeout(() => setVersionCreated(false), 2500);
     }
   };
 
@@ -912,9 +922,13 @@ function VersionManager({ project, onClose, onRestore }) {
         <div style={{ padding: "0.75rem 1.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <button onClick={handleNewVersion} style={{
             ...S.pillBtn, padding: "0.35rem 0.8rem",
-            background: `${T.gold}15`, border: `1px solid ${T.gold}40`, color: T.gold,
+            background: versionCreated ? `${T.greenLight}15` : `${T.gold}15`,
+            border: `1px solid ${versionCreated ? `${T.greenLight}40` : `${T.gold}40`}`,
+            color: versionCreated ? T.greenLight : T.gold,
+            transition: "all 0.3s ease",
           }}>
-            <Icon name="plus" size={12} /> Neue Version
+            <Icon name={versionCreated ? "check" : "plus"} size={12} />
+            {versionCreated ? "Version erstellt!" : "Neue Version"}
           </button>
           <button onClick={handleShareCurrent} style={{
             ...S.pillBtn, padding: "0.35rem 0.8rem",

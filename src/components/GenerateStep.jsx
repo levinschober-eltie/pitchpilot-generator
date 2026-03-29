@@ -139,9 +139,19 @@ export default function GenerateStep({ project, onGenerated, onNavigate }) {
       {/* Generate button / Progress */}
       {generating ? (
         <div className="gen-progress">
-          <div className="spinner" />
-          <div style={{ fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+          {(mode === "ai" || (mode === "auto" && apiReady)) ? (
+            <div className="gen-pulse-ring" />
+          ) : (
+            <div className="spinner" />
+          )}
+          <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.25rem" }}>
             {(mode === "ai" || (mode === "auto" && apiReady)) ? "Claude AI generiert den Pitch..." : "Template wird generiert..."}
+          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--gray-text)", marginBottom: "0.75rem" }}>
+            {(mode === "ai" || (mode === "auto" && apiReady))
+              ? "Analyse der Unternehmensdaten und Erstellung individueller Inhalte..."
+              : "Wenige Sekunden..."
+            }
           </div>
           <button className="btn btn-danger btn-sm" onClick={handleCancel}>Abbrechen</button>
           {streamText && (

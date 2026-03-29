@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProject, saveProject, createBlankProject } from "../store";
 import CompanyStep from "./CompanyStep";
@@ -31,6 +31,7 @@ export default function Wizard() {
   const [step, setStep] = useState(project.step || 0);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [hasPendingSave, setHasPendingSave] = useState(false);
+  const stepContentRef = useRef(null);
 
   // Debounced save — avoids excessive localStorage writes during slider drags
   useEffect(() => {
@@ -44,6 +45,15 @@ export default function Wizard() {
     }, 300);
     return () => clearTimeout(timer);
   }, [project, step]);
+
+  // Trigger step transition animation on step change
+  useEffect(() => {
+    const el = stepContentRef.current;
+    if (!el) return;
+    el.style.animation = "none";
+    void el.offsetHeight; // force reflow
+    el.style.animation = "";
+  }, [step]);
 
   // Warn before unload only when a save is still pending
   useEffect(() => {
@@ -122,47 +132,49 @@ export default function Wizard() {
       </div>
 
       {/* Step content */}
-      {step === 0 && (
-        <CompanyStep
-          data={project.company}
-          onChange={(d) => update("company", d)}
-          consultant={project.consultant}
-          onConsultantChange={(c) => updateFull("consultant", c)}
-          theme={project.theme}
-          onThemeChange={(t) => updateFull("theme", t)}
-        />
-      )}
-      {step === 1 && <EnergyStep data={project.energy} onChange={(d) => update("energy", d)} />}
-      {step === 2 && (
-        <PhaseStep
-          project={project}
-          phases={project.phases}
-          phaseConfig={project.phaseConfig}
-          finance={project.finance}
-          onPhasesChange={(p) => updateFull("phases", p)}
-          onConfigChange={(c) => updateFull("phaseConfig", c)}
-          onFinanceChange={(f) => update("finance", f)}
-        />
-      )}
-      {step === 3 && (
-        <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Lade Marktanalyse...</div>}>
-          <MarketAnalysis
-            project={project}
-            inline
-            onResults={(results) => updateFull("market", results)}
+      <div ref={stepContentRef} className="step-transition" key={step}>
+        {step === 0 && (
+          <CompanyStep
+            data={project.company}
+            onChange={(d) => update("company", d)}
+            consultant={project.consultant}
+            onConsultantChange={(c) => updateFull("consultant", c)}
+            theme={project.theme}
+            onThemeChange={(t) => updateFull("theme", t)}
           />
-        </Suspense>
-      )}
-      {step === 4 && (
-        <GenerateStep
-          project={project}
-          onGenerated={(content) => {
-            updateFull("generated", content);
-            saveProject({ ...project, generated: content, generatedAt: Date.now() });
-          }}
-          onNavigate={() => navigate(`/present/${project.id}`)}
-        />
-      )}
+        )}
+        {step === 1 && <EnergyStep data={project.energy} onChange={(d) => update("energy", d)} />}
+        {step === 2 && (
+          <PhaseStep
+            project={project}
+            phases={project.phases}
+            phaseConfig={project.phaseConfig}
+            finance={project.finance}
+            onPhasesChange={(p) => updateFull("phases", p)}
+            onConfigChange={(c) => updateFull("phaseConfig", c)}
+            onFinanceChange={(f) => update("finance", f)}
+          />
+        )}
+        {step === 3 && (
+          <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Lade Marktanalyse...</div>}>
+            <MarketAnalysis
+              project={project}
+              inline
+              onResults={(results) => updateFull("market", results)}
+            />
+          </Suspense>
+        )}
+        {step === 4 && (
+          <GenerateStep
+            project={project}
+            onGenerated={(content) => {
+              updateFull("generated", content);
+              saveProject({ ...project, generated: content, generatedAt: Date.now() });
+            }}
+            onNavigate={() => navigate(`/present/${project.id}`)}
+          />
+        )}
+      </div>
 
       {/* Navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid rgba(0,0,0,0.08)" }}>

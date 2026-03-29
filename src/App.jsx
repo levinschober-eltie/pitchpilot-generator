@@ -19,8 +19,9 @@ const Settings = lazyRetry(() => import("./components/Settings"));
 
 function Loading() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-      <div className="spinner" style={{ width: 40, height: 40, border: "3px solid #D0D0CC", borderTopColor: "#FFCE00", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: "1rem" }}>
+      <div className="spinner-unified" />
+      <div style={{ fontSize: "0.8rem", color: "var(--gray-text)", letterSpacing: "0.5px" }}>Wird geladen...</div>
     </div>
   );
 }
