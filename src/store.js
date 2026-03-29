@@ -6,9 +6,8 @@
 function safeDeepClone(obj) {
   if (!obj || typeof obj !== "object") return obj;
   try {
-    return JSON.parse(JSON.stringify(obj));
-  } catch (err) {
-    console.warn("[PitchPilot] Deep clone failed, falling back to shallow copy:", err?.message);
+    return structuredClone(obj);
+  } catch {
     return Array.isArray(obj) ? [...obj] : { ...obj };
   }
 }
@@ -201,16 +200,26 @@ export function createVersion(projectId, name, createdBy = "owner") {
     },
   };
 
-  project.versions.push(version);
-  saveProject(project);
+  const updatedVersions = [...project.versions, version];
+  const testProject = { ...project, versions: updatedVersions };
+  try {
+    localStorage.setItem(PREFIX + testProject.id, JSON.stringify(testProject));
+  } catch (err) {
+    console.warn("[PitchPilot] Version konnte nicht gespeichert werden:", err?.message);
+    return null;
+  }
+  project.versions = updatedVersions;
+  project.updatedAt = Date.now();
   return version;
 }
 
 export function renameVersion(projectId, versionId, newName) {
   const project = getProject(projectId);
   if (!project?.versions) return;
-  const v = project.versions.find(v => v.id === versionId);
-  if (v) { v.name = newName; saveProject(project); }
+  project.versions = project.versions.map(v =>
+    v.id === versionId ? { ...v, name: newName } : v
+  );
+  saveProject(project);
 }
 
 export function deleteVersion(projectId, versionId) {
@@ -304,7 +313,7 @@ export async function encodeSharePayload(project, versionId) {
 export async function decodeSharePayload(encoded) {
   const { decompressFromEncodedURIComponent } = await import("lz-string");
   const json = decompressFromEncodedURIComponent(encoded);
-  if (!json) return null;
+  if (!json || json.trim().length === 0) return null;
 
   try {
     const payload = JSON.parse(json);
@@ -440,7 +449,7 @@ export async function loadNamedShare(slug) {
 
     const { decompressFromEncodedURIComponent } = await import("lz-string");
     const json = decompressFromEncodedURIComponent(payload);
-    if (!json) return null;
+    if (!json || json.trim().length === 0) return null;
 
     let data;
     try {

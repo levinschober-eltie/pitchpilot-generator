@@ -1141,8 +1141,14 @@ export default function PresentationRenderer() {
       // Prüfe ob die Ergebnisse noch zum aktuellen Config passen
       if (results._configHash) {
         const currentHash = JSON.stringify({
-          e: prev.energy?.stromverbrauch,
-          p: prev.phaseConfig?.pv?.pvDach,
+          sv: prev.energy?.stromverbrauch,
+          gv: prev.energy?.gasverbrauch,
+          pd: prev.phaseConfig?.pv?.pvDach,
+          pf: prev.phaseConfig?.pv?.pvFassade,
+          pc: prev.phaseConfig?.pv?.pvCarport,
+          pfr: prev.phaseConfig?.pv?.pvFreiflaeche,
+          sk: prev.phaseConfig?.speicher?.kapazitaet,
+          wl: prev.phaseConfig?.waerme?.wpLeistung,
         });
         if (results._configHash !== currentHash) {
           console.warn("[PitchPilot] Stale market results discarded");

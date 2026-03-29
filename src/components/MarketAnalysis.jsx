@@ -955,8 +955,14 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
       bessRevenue: bessResult?.totalRevenue || 0,
       bessCycles: bessResult?.totalCycles || 0,
       _configHash: JSON.stringify({
-        e: project.energy?.stromverbrauch,
-        p: project.phaseConfig?.pv?.pvDach,
+        sv: project.energy?.stromverbrauch,
+        gv: project.energy?.gasverbrauch,
+        pd: project.phaseConfig?.pv?.pvDach,
+        pf: project.phaseConfig?.pv?.pvFassade,
+        pc: project.phaseConfig?.pv?.pvCarport,
+        pfr: project.phaseConfig?.pv?.pvFreiflaeche,
+        sk: project.phaseConfig?.speicher?.kapazitaet,
+        wl: project.phaseConfig?.waerme?.wpLeistung,
       }),
     });
   }, [marketResults, pvYieldMWh, bessResult]);
