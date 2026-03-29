@@ -137,7 +137,10 @@ const ProjectCard = memo(function ProjectCard({ project: p, copiedId, shareLoadi
   return (
     <div
       className="card card-hover project-card"
+      role="link"
+      tabIndex={0}
       onClick={() => onNavigate(p.generated ? `/present/${p.id}` : `/edit/${p.id}`)}
+      onKeyDown={(e) => { if (e.key === "Enter") onNavigate(p.generated ? `/present/${p.id}` : `/edit/${p.id}`); }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>

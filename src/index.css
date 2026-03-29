@@ -95,6 +95,7 @@ body {
 
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
+.btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 .btn-primary {
@@ -333,6 +334,11 @@ body {
   border-color: var(--gray-mid);
 }
 
+.phase-toggle:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+}
+
 .phase-toggle.enabled {
   border-color: var(--yellow);
   background: rgba(255, 206, 0, 0.04);
@@ -373,6 +379,11 @@ body {
 .project-card {
   position: relative;
   cursor: pointer;
+}
+
+.project-card:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
 }
 
 .project-card .project-meta {
@@ -466,7 +477,8 @@ body {
 
 /* Responsive — Mobile */
 @media (max-width: 768px) {
-  .app-header { padding: 0.75rem 1rem; }
+  .app-header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+  .app-header nav { flex-wrap: wrap; }
   .app-main { padding: 1rem; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .wizard-steps { flex-wrap: wrap; gap: 0.3rem; }

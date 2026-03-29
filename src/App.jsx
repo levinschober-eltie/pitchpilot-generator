@@ -60,7 +60,7 @@ export default function App() {
             <button className="btn btn-secondary btn-sm" onClick={() => navigate("/settings")}>Einstellungen</button>
           </nav>
         </header>
-        <main className="app-main">
+        <main className="app-main" id="main-content">
           <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />

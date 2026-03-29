@@ -52,16 +52,20 @@ const FINANCE_SLIDERS = [
 function SliderGroup({ sliders, data, onChange }) {
   return sliders.map((s) => (
     <div className="slider-row" key={s.key}>
-      <label>{s.label}</label>
+      <label htmlFor={`slider-${s.key}`}>{s.label}</label>
       <input
+        id={`slider-${s.key}`}
         type="range"
         min={s.min}
         max={s.max}
         step={s.step}
         value={data[s.key] ?? s.min}
+        aria-valuemin={s.min}
+        aria-valuemax={s.max}
+        aria-valuenow={data[s.key] ?? s.min}
         onChange={(e) => onChange({ ...data, [s.key]: parseFloat(e.target.value) })}
       />
-      <span className="slider-value">
+      <span className="slider-value" aria-live="polite">
         {Number(data[s.key] ?? s.min).toLocaleString("de-DE", {
           minimumFractionDigits: s.step < 1 ? (s.step < 0.1 ? 2 : 1) : 0,
           maximumFractionDigits: s.step < 1 ? (s.step < 0.1 ? 2 : 1) : 0,
@@ -110,7 +114,12 @@ export default function PhaseStep({ project, phases, phaseConfig, finance, onPha
           <div key={p.key}>
             <div
               className={`phase-toggle ${p.enabled ? "enabled" : ""}`}
+              role="switch"
+              aria-checked={p.enabled}
+              aria-label={`${p.label} ${p.enabled ? "aktiviert" : "deaktiviert"}`}
+              tabIndex={0}
               onClick={() => togglePhase(i)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); togglePhase(i); } }}
             >
               <div className="toggle-switch" />
               <Icon name={PHASE_ICONS[p.key] || "target"} size={20} color={p.enabled ? "var(--yellow)" : "var(--gray-text)"} />

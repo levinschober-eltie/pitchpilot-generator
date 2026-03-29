@@ -389,13 +389,17 @@ export default function EnergyStep({ data, onChange }) {
       {/* Sliders with click-to-edit */}
       {SLIDERS.map((s) => (
         <div className="slider-row" key={s.key}>
-          <label>{s.label}</label>
+          <label htmlFor={`energy-${s.key}`}>{s.label}</label>
           <input
+            id={`energy-${s.key}`}
             type="range"
             min={s.min}
             max={s.max}
             step={s.step}
             value={d[s.key] ?? s.min}
+            aria-valuemin={s.min}
+            aria-valuemax={s.max}
+            aria-valuenow={d[s.key] ?? s.min}
             onChange={(e) => set(s.key, parseFloat(e.target.value))}
           />
           {editingKey === s.key ? (
