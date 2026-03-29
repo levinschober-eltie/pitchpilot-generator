@@ -13,7 +13,11 @@ function safeDeepClone(obj) {
 }
 
 function getApiToken() {
-  return localStorage.getItem("pitchpilot_api_token") || "";
+  try {
+    return localStorage.getItem("pitchpilot_api_token") || "";
+  } catch {
+    return "";
+  }
 }
 
 const PREFIX = "pitchpilot_project_";
@@ -24,15 +28,19 @@ export function generateId() {
 
 export function listProjects() {
   const projects = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(PREFIX)) {
-      try {
-        projects.push(migrateProject(JSON.parse(localStorage.getItem(key))));
-      } catch {
-        /* skip corrupt */
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(PREFIX)) {
+        try {
+          projects.push(migrateProject(JSON.parse(localStorage.getItem(key))));
+        } catch {
+          /* skip corrupt */
+        }
       }
     }
+  } catch {
+    /* localStorage unavailable */
   }
   return projects.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
@@ -65,7 +73,11 @@ export function saveProject(project) {
 }
 
 export function deleteProject(id) {
-  localStorage.removeItem(PREFIX + id);
+  try {
+    localStorage.removeItem(PREFIX + id);
+  } catch (err) {
+    console.warn("[PitchPilot] localStorage.removeItem fehlgeschlagen:", err?.name, err?.message);
+  }
 }
 
 export function duplicateProject(id) {
@@ -472,13 +484,21 @@ function decodePayloadObj(payload) {
 
 /** API key management — sessionStorage only */
 export function getApiKey() {
-  return sessionStorage.getItem("pitchpilot_anthropic_key") || "";
+  try {
+    return sessionStorage.getItem("pitchpilot_anthropic_key") || "";
+  } catch {
+    return "";
+  }
 }
 
 export function setApiKey(key) {
-  if (key) {
-    sessionStorage.setItem("pitchpilot_anthropic_key", key);
-  } else {
-    sessionStorage.removeItem("pitchpilot_anthropic_key");
+  try {
+    if (key) {
+      sessionStorage.setItem("pitchpilot_anthropic_key", key);
+    } else {
+      sessionStorage.removeItem("pitchpilot_anthropic_key");
+    }
+  } catch (err) {
+    console.warn("[PitchPilot] sessionStorage Zugriff fehlgeschlagen:", err?.name, err?.message);
   }
 }
