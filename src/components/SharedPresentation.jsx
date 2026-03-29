@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useMemo, useCallback, useEffect, useTransition, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { decodeSharePayload, saveCustomerVersion, getProject } from "../store";
 import { calculateAll, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
@@ -91,6 +91,7 @@ export default function SharedPresentation() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [calcNum, setCalcNum] = useState(1);
+  const [isPending, startTransition] = useTransition();
 
   // Decode share payload on mount
   useEffect(() => {
@@ -135,7 +136,9 @@ export default function SharedPresentation() {
   const heroCards = useMemo(() => calc ? getDynamicHeroCards(calc) : [], [calc]);
 
   const updateConfig = useCallback((path, value) => {
-    setProject(prev => setVal(prev, path, value));
+    startTransition(() => {
+      setProject(prev => setVal(prev, path, value));
+    });
     setSaved(false);
   }, []);
 
@@ -181,13 +184,14 @@ export default function SharedPresentation() {
         handleSave={handleSave}
         saved={saved}
         saveError={saveError}
+        isPending={isPending}
       />
     </ThemeProvider>
   );
 }
 
 /* ── Inner component that consumes the theme ── */
-function SharedPresentationInner({ project, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError }) {
+function SharedPresentationInner({ project, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError, isPending }) {
   const T = useTheme();
   const S = useMemo(() => mkS(T), [T]);
 
@@ -293,12 +297,13 @@ function SharedPresentationInner({ project, calc, heroCards, configOpen, setConf
       handleSave={handleSave}
       saved={saved}
       saveError={saveError}
+      isPending={isPending}
     />
   );
 }
 
 /* ── Full presentation view (extracted for readability) ── */
-function SharedPresentationFull({ project, gen, phases, company, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError }) {
+function SharedPresentationFull({ project, gen, phases, company, calc, heroCards, configOpen, setConfigOpen, updateConfig, handleSave, saved, saveError, isPending }) {
   const T = useTheme();
   const S = useMemo(() => mkS(T), [T]);
   const [active, setActive] = useState(0);
@@ -530,7 +535,8 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
             {isFinal && calc && (
               <div style={{ animation: "fadeSlideIn 0.5s ease forwards" }}>
                 {heroCards?.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${heroCards.length}, 1fr)`, gap: "1rem", marginBottom: "1.5rem" }}>
+                  <div style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(${heroCards.length}, 1fr)`, gap: "1rem", marginBottom: "1.5rem" }}>
+                    {isPending && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.05)", borderRadius: "inherit", transition: "opacity 0.2s", zIndex: 1 }} />}
                     {heroCards.map((card, i) => {
                       const cardColor = card.accent === "green" ? T.greenLight : T.gold;
                       return (
@@ -616,7 +622,8 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
             ))}
 
             {calc && (
-              <div style={{ padding: "0.75rem", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: `1px solid ${T.gold}15`, marginBottom: "1rem" }}>
+              <div style={{ position: "relative", padding: "0.75rem", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: `1px solid ${T.gold}15`, marginBottom: "1rem" }}>
+                {isPending && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.05)", borderRadius: "inherit", transition: "opacity 0.2s" }} />}
                 <div style={{ fontFamily: T.font, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: T.greenLight, marginBottom: "0.5rem" }}>
                   LIVE-ERGEBNIS
                 </div>

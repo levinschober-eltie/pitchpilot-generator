@@ -60,18 +60,23 @@ export default function Dashboard() {
     setShareLoading(null);
   }, []);
 
+  const statsRequestRef = useRef(0);
   const handleOpenStats = useCallback(async (e, projectId) => {
     e.stopPropagation();
-    if (statsOpen === projectId) {
-      setStatsOpen(null);
-      return;
-    }
-    setStatsOpen(projectId);
+    setStatsOpen(prev => {
+      if (prev === projectId) return null;
+      return projectId;
+    });
+    // If toggling off, don't fetch
+    if (statsOpen === projectId) return;
+    const requestId = ++statsRequestRef.current;
     setStatsLoading(true);
     try {
       const data = await fetchShareStats(projectId);
+      if (statsRequestRef.current !== requestId) return; // stale
       setStats(data);
     } catch {
+      if (statsRequestRef.current !== requestId) return;
       setStats({ shares: [] });
     }
     setStatsLoading(false);

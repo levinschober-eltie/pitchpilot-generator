@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect, startTransition, lazy, Suspense } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, useTransition, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProject, saveProject, createVersion, renameVersion, deleteVersion, restoreVersion, createNamedShareLink } from "../store";
 import { calculateAll, project20Years, fmtEuro, fmtNum, getDynamicHeroCards, getPhaseCalcItems } from "../calcEngine";
@@ -486,7 +486,7 @@ function InvestDonut({ calc, phases }) {
 }
 
 /* ── Final Summary ── */
-function FinalSummary({ summary, calc, heroCards, color, project }) {
+function FinalSummary({ summary, calc, heroCards, color, project, isPending }) {
   const T = useTheme();
   if (!summary && !calc) return null;
   const green = T.greenLight || T.green;
@@ -503,7 +503,8 @@ function FinalSummary({ summary, calc, heroCards, color, project }) {
 
       {/* Hero Cards (live calculated) */}
       {heroCards?.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${heroCards.length}, 1fr)`, gap: "1rem", marginBottom: "1.5rem" }}>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(${heroCards.length}, 1fr)`, gap: "1rem", marginBottom: "1.5rem" }}>
+          {isPending && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.05)", borderRadius: "inherit", transition: "opacity 0.2s", zIndex: 1 }} />}
           {heroCards.map((card, i) => {
             const cardColor = card.accent === "green" ? green : T.gold;
             return (
@@ -1058,6 +1059,7 @@ export default function PresentationRenderer() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [configSaved, setConfigSaved] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isPending, startTransition] = useTransition();
   const contentRef = useRef(null);
   const originalConfigRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -1124,13 +1126,15 @@ export default function PresentationRenderer() {
     showToast("Kalkulation zurückgesetzt");
   }, [showToast]);
 
-  // Update a nested config value — state instant, localStorage debounced
+  // Update a nested config value — state instant via useTransition, localStorage debounced
   const updateConfig = useCallback((path, value) => {
-    setProject(prev => {
-      const next = setVal(prev, path, value);
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => saveProject(next), 500);
-      return next;
+    startTransition(() => {
+      setProject(prev => {
+        const next = setVal(prev, path, value);
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => saveProject(next), 500);
+        return next;
+      });
     });
     setConfigSaved(false);
   }, []);
@@ -1439,7 +1443,7 @@ export default function PresentationRenderer() {
         <div className="pitch-grid" style={{ display: "grid", gridTemplateColumns: "5fr 4fr", gap: "1.25rem", alignItems: "start", minWidth: 0 }}>
           <div ref={contentRef} style={{ minWidth: 0, animation: "fadeSlideIn 0.5s ease forwards" }}>
             {isFinal ? (
-              <FinalSummary summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} project={project} />
+              <FinalSummary summary={gen.finalSummary} calc={calc} heroCards={heroCards} color={currentColor} project={project} isPending={isPending} />
             ) : (
               <PhaseContent phase={currentPhase} color={currentColor} liveKpis={liveKpis} />
             )}
@@ -1611,10 +1615,12 @@ export default function PresentationRenderer() {
               {/* Live KPI Summary */}
               {calc && (
                 <div style={{
+                  position: "relative",
                   marginTop: "0.5rem", padding: "0.75rem",
                   background: "rgba(255,255,255,0.03)", borderRadius: 8,
                   border: `1px solid ${T.gold}15`,
                 }}>
+                  {isPending && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.05)", borderRadius: "inherit", transition: "opacity 0.2s" }} />}
                   <div style={{ fontFamily: T.font, fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase", fontWeight: 700, color: T.greenLight || T.green, marginBottom: "0.5rem" }}>
                     LIVE-ERGEBNIS
                   </div>
