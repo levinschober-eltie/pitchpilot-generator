@@ -6,6 +6,7 @@ import { C } from "../colors";
 import { ThemeProvider, useTheme } from "../ThemeContext";
 import Icon from "./Icons";
 import { getVal, setVal } from "../utils";
+import { CONFIG_GROUPS } from "../sliderConfig";
 
 const MarketAnalysis = lazy(() => import("./MarketAnalysis"));
 const PhaseVisual = lazy(() => import("./PhaseVisuals"));
@@ -43,42 +44,7 @@ function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
   );
 }
 
-const CONFIG_GROUPS = [
-  { title: "ENERGIEPROFIL", icon: "bolt", sliders: [
-    { path: ["energy", "stromverbrauch"], label: "Stromverbrauch", unit: "MWh/a", min: 500, max: 100000, step: 500 },
-    { path: ["energy", "gasverbrauch"], label: "Gasverbrauch", unit: "MWh/a", min: 0, max: 50000, step: 500 },
-    { path: ["energy", "strompreis"], label: "Strompreis", unit: "ct/kWh", min: 8, max: 40, step: 0.5, dec: 1 },
-    { path: ["energy", "gaspreis"], label: "Gaspreis", unit: "ct/kWh", min: 2, max: 18, step: 0.5, dec: 1 },
-  ]},
-  { title: "PV-AUSBAU", icon: "sun", sliders: [
-    { path: ["phaseConfig", "pv", "pvDach"], label: "PV Dach", unit: "MWp", min: 0, max: 20, step: 0.1, dec: 1 },
-    { path: ["phaseConfig", "pv", "pvFassade"], label: "PV Fassade", unit: "MWp", min: 0, max: 5, step: 0.1, dec: 1 },
-    { path: ["phaseConfig", "pv", "pvCarport"], label: "PV Carport", unit: "MWp", min: 0, max: 10, step: 0.1, dec: 1 },
-    { path: ["phaseConfig", "pv", "pvFreiflaeche"], label: "PV Freifläche", unit: "MWp", min: 0, max: 20, step: 0.1, dec: 1 },
-  ]},
-  { title: "SPEICHER", icon: "battery", sliders: [
-    { path: ["phaseConfig", "speicher", "kapazitaet"], label: "Standort-BESS", unit: "MWh", min: 0, max: 50, step: 0.5, dec: 1 },
-  ]},
-  { title: "WÄRME", icon: "fire", sliders: [
-    { path: ["phaseConfig", "waerme", "wpLeistung"], label: "WP-Leistung", unit: "MW", min: 0, max: 20, step: 0.5, dec: 1 },
-    { path: ["phaseConfig", "waerme", "pufferspeicher"], label: "Pufferspeicher", unit: "m³", min: 0, max: 1000, step: 50 },
-  ]},
-  { title: "MOBILITÄT", icon: "car", sliders: [
-    { path: ["phaseConfig", "ladeinfra", "anzahlPKW"], label: "PKW Ladepunkte", unit: "Stk", min: 0, max: 200, step: 5 },
-    { path: ["phaseConfig", "ladeinfra", "anzahlLKW"], label: "LKW Ladepunkte", unit: "Stk", min: 0, max: 30, step: 1 },
-    { path: ["phaseConfig", "ladeinfra", "dieselpreis"], label: "Dieselpreis", unit: "€/l", min: 1.0, max: 2.5, step: 0.05, dec: 2 },
-  ]},
-  { title: "GRAUSTROM-BESS", icon: "grid", sliders: [
-    { path: ["phaseConfig", "bess", "kapazitaet"], label: "BESS Kapazität", unit: "MWh", min: 0, max: 500, step: 10 },
-  ]},
-  { title: "FINANZIERUNG", icon: "bank", sliders: [
-    { path: ["finance", "ekAnteil"], label: "Eigenkapitalanteil", unit: "%", min: 10, max: 100, step: 5 },
-    { path: ["finance", "kreditZins"], label: "Kreditzins", unit: "% p.a.", min: 2, max: 8, step: 0.1, dec: 1 },
-    { path: ["finance", "kreditLaufzeit"], label: "Kreditlaufzeit", unit: "Jahre", min: 5, max: 25, step: 1 },
-  ]},
-];
-
-/* getVal/setVal imported from ../utils */
+/* getVal/setVal imported from ../utils, CONFIG_GROUPS from ../sliderConfig */
 
 export default function SharedPresentation() {
   const [searchParams] = useSearchParams();
