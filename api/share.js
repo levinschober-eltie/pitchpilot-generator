@@ -5,9 +5,10 @@
  * Body: { payload: string (lz-string compressed), companyName: string, projectId: string }
  * Returns: { slug: string, url: string }
  *
- * Rate limit: 10 creates per minute per IP (in-memory, resets on cold start)
+ * Rate limit: 10 creates per minute per IP (Upstash sliding window)
  */
 import { Redis } from "@upstash/redis";
+import { shareLimiter, getClientIp } from "./_lib/ratelimit.js";
 
 const redis = Redis.fromEnv();
 
@@ -17,35 +18,6 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:4173",
 ];
-
-// --- Rate limiting (Map-based, per serverless instance) ---
-const rateLimitMap = new Map(); // key: IP -> { count, resetAt }
-const RATE_LIMIT = 10;
-const RATE_WINDOW_MS = 60 * 1000;
-
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const key = ip || "unknown";
-  let entry = rateLimitMap.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + RATE_WINDOW_MS };
-    rateLimitMap.set(key, entry);
-  }
-
-  entry.count++;
-  const remaining = Math.max(0, RATE_LIMIT - entry.count);
-
-  return { allowed: entry.count <= RATE_LIMIT, remaining, limit: RATE_LIMIT };
-}
-
-// Cleanup stale entries periodically to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitMap) {
-    if (now > entry.resetAt) rateLimitMap.delete(key);
-  }
-}, 60 * 1000);
 
 function slugify(str) {
   return str
@@ -93,13 +65,14 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Rate limiting
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
-  const rateResult = checkRateLimit(ip);
-  res.setHeader("X-RateLimit-Limit", String(rateResult.limit));
-  res.setHeader("X-RateLimit-Remaining", String(rateResult.remaining));
+  // Rate limiting (Upstash sliding window)
+  const ip = getClientIp(req);
+  const { success, limit, remaining, reset } = await shareLimiter.limit(ip);
+  res.setHeader("X-RateLimit-Limit", String(limit));
+  res.setHeader("X-RateLimit-Remaining", String(remaining));
+  res.setHeader("X-RateLimit-Reset", String(reset));
 
-  if (!rateResult.allowed) {
+  if (!success) {
     return res.status(429).json({ error: "Rate limit exceeded. Max 10 creates per minute." });
   }
 

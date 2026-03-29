@@ -9,6 +9,7 @@ import { B } from "../colors";
 import { useTheme } from "../ThemeContext";
 import Icon from "./Icons";
 import { fmtEuro, fmtNum } from "../calcEngine";
+import { useFocusTrap } from "../useFocusTrap";
 
 /* ─────────────────────────────────────────────
    Constants
@@ -764,6 +765,8 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
   const T = useTheme();
   const S = useMemo(() => mkStyles(T), [T]);
   const CHART_DARK = useMemo(() => mkChartDark(T), [T]);
+  const modalRef = useRef(null);
+  useFocusTrap(inline ? { current: null } : modalRef);
 
   const e = project?.energy || {};
   const pc = project?.phaseConfig || {};
@@ -951,6 +954,10 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
       co2Avoided: marketResults.co2Avoided,
       bessRevenue: bessResult?.totalRevenue || 0,
       bessCycles: bessResult?.totalCycles || 0,
+      _configHash: JSON.stringify({
+        e: project.energy?.stromverbrauch,
+        p: project.phaseConfig?.pv?.pvDach,
+      }),
     });
   }, [marketResults, pvYieldMWh, bessResult]);
 
@@ -1499,7 +1506,7 @@ export default function MarketAnalysis({ project, onClose, inline, onResults }) 
 
   return (
     <div style={S.overlay} onClick={(ev) => { if (ev.target === ev.currentTarget) onClose(); }}>
-      <div style={S.modal} role="dialog" aria-modal="true" aria-label="Marktanalyse">
+      <div ref={modalRef} style={S.modal} role="dialog" aria-modal="true" aria-label="Marktanalyse">
         {headerEl}
         {bodyContent}
         {spinnerCss}

@@ -3,6 +3,20 @@
  * Each project is stored as pitchpilot_project_{id}.
  */
 
+function safeDeepClone(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch (err) {
+    console.warn("[PitchPilot] Deep clone failed, falling back to shallow copy:", err?.message);
+    return Array.isArray(obj) ? [...obj] : { ...obj };
+  }
+}
+
+function getApiToken() {
+  return localStorage.getItem("pitchpilot_api_token") || "";
+}
+
 const PREFIX = "pitchpilot_project_";
 
 export function generateId() {
@@ -178,11 +192,11 @@ export function createVersion(projectId, name, createdBy = "owner") {
       company: { ...project.company },
       energy: { ...project.energy },
       phases: project.phases.map(p => ({ ...p })),
-      phaseConfig: JSON.parse(JSON.stringify(project.phaseConfig)),
+      phaseConfig: safeDeepClone(project.phaseConfig),
       finance: { ...project.finance },
       consultant: project.consultant ? { ...project.consultant } : null,
-      generated: project.generated ? JSON.parse(JSON.stringify(project.generated)) : null,
-      market: project.market ? JSON.parse(JSON.stringify(project.market)) : {},
+      generated: project.generated ? safeDeepClone(project.generated) : null,
+      market: project.market ? safeDeepClone(project.market) : {},
       theme: project.theme ? { ...project.theme } : { preset: "eckart" },
     },
   };
@@ -291,32 +305,38 @@ export async function decodeSharePayload(encoded) {
   const { decompressFromEncodedURIComponent } = await import("lz-string");
   const json = decompressFromEncodedURIComponent(encoded);
   if (!json) return null;
-  const payload = JSON.parse(json);
-  if (payload.v !== 1) return null;
 
-  const phases = [
-    { key: "analyse", enabled: !!payload.p?.[0], label: "Analyse & Bewertung" },
-    { key: "pv", enabled: !!payload.p?.[1], label: "PV-Ausbau" },
-    { key: "speicher", enabled: !!payload.p?.[2], label: "Speicher & Steuerung" },
-    { key: "waerme", enabled: !!payload.p?.[3], label: "Wärmekonzept" },
-    { key: "ladeinfra", enabled: !!payload.p?.[4], label: "Ladeinfrastruktur" },
-    { key: "bess", enabled: !!payload.p?.[5], label: "Graustrom-BESS" },
-  ];
+  try {
+    const payload = JSON.parse(json);
+    if (payload.v !== 1) return null;
 
-  return {
-    id: "shared_" + generateId(),
-    sourceProjectId: payload.pid,
-    sourceVersionId: payload.vid,
-    company: { name: payload.n, city: payload.c, industry: payload.ind, address: "", employeeCount: 500, description: "", logoUrl: "" },
-    energy: expandObj(payload.e),
-    phases,
-    phaseConfig: expandObj(payload.pc),
-    finance: expandObj(payload.f),
-    consultant: payload.cn,
-    generated: null,
-    market: {},
-    theme: payload.th ? { preset: payload.th, customColors: payload.thc || null } : { preset: "eckart" },
-  };
+    const phases = [
+      { key: "analyse", enabled: !!payload.p?.[0], label: "Analyse & Bewertung" },
+      { key: "pv", enabled: !!payload.p?.[1], label: "PV-Ausbau" },
+      { key: "speicher", enabled: !!payload.p?.[2], label: "Speicher & Steuerung" },
+      { key: "waerme", enabled: !!payload.p?.[3], label: "Wärmekonzept" },
+      { key: "ladeinfra", enabled: !!payload.p?.[4], label: "Ladeinfrastruktur" },
+      { key: "bess", enabled: !!payload.p?.[5], label: "Graustrom-BESS" },
+    ];
+
+    return {
+      id: "shared_" + generateId(),
+      sourceProjectId: payload.pid,
+      sourceVersionId: payload.vid,
+      company: { name: payload.n, city: payload.c, industry: payload.ind, address: "", employeeCount: 500, description: "", logoUrl: "" },
+      energy: expandObj(payload.e),
+      phases,
+      phaseConfig: expandObj(payload.pc),
+      finance: expandObj(payload.f),
+      consultant: payload.cn,
+      generated: null,
+      market: {},
+      theme: payload.th ? { preset: payload.th, customColors: payload.thc || null } : { preset: "eckart" },
+    };
+  } catch (err) {
+    console.warn("[PitchPilot] Failed to parse share payload:", err?.message);
+    return null;
+  }
 }
 
 /** Save a customer calculation as a version on the source project (if it exists locally) */
@@ -335,11 +355,11 @@ export function saveCustomerVersion(sourceProjectId, modifiedProject, calcNum) {
       company: { ...modifiedProject.company },
       energy: { ...modifiedProject.energy },
       phases: modifiedProject.phases.map(p => ({ ...p })),
-      phaseConfig: JSON.parse(JSON.stringify(modifiedProject.phaseConfig)),
+      phaseConfig: safeDeepClone(modifiedProject.phaseConfig),
       finance: { ...modifiedProject.finance },
       consultant: modifiedProject.consultant,
-      generated: modifiedProject.generated ? JSON.parse(JSON.stringify(modifiedProject.generated)) : null,
-      market: modifiedProject.market ? JSON.parse(JSON.stringify(modifiedProject.market)) : {},
+      generated: modifiedProject.generated ? safeDeepClone(modifiedProject.generated) : null,
+      market: modifiedProject.market ? safeDeepClone(modifiedProject.market) : {},
       theme: modifiedProject.theme ? { ...modifiedProject.theme } : { preset: "eckart" },
     },
   };
@@ -422,7 +442,13 @@ export async function loadNamedShare(slug) {
     const json = decompressFromEncodedURIComponent(payload);
     if (!json) return null;
 
-    const data = JSON.parse(json);
+    let data;
+    try {
+      data = JSON.parse(json);
+    } catch (err) {
+      console.warn("[PitchPilot] Failed to parse named share payload:", err?.message);
+      return null;
+    }
     return decodePayloadObj(data);
   } catch {
     return null;
@@ -434,7 +460,11 @@ export async function loadNamedShare(slug) {
  */
 export async function fetchShareStats(projectId) {
   try {
-    const resp = await fetch(`${API_BASE}/api/stats/${encodeURIComponent(projectId)}`);
+    const resp = await fetch(`${API_BASE}/api/stats/${encodeURIComponent(projectId)}`, {
+      headers: {
+        "Authorization": `Bearer ${getApiToken()}`,
+      },
+    });
     if (!resp.ok) return { shares: [] };
     return resp.json();
   } catch {

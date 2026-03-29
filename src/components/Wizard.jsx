@@ -30,24 +30,28 @@ export default function Wizard() {
   });
   const [step, setStep] = useState(project.step || 0);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [hasPendingSave, setHasPendingSave] = useState(false);
 
   // Debounced save — avoids excessive localStorage writes during slider drags
   useEffect(() => {
+    setHasPendingSave(true);
     const timer = setTimeout(() => {
       const saved = saveProject({ ...project, step });
       if (!id && saved.id) {
         window.history.replaceState(null, "", `#/edit/${saved.id}`);
       }
+      setHasPendingSave(false);
     }, 300);
     return () => clearTimeout(timer);
   }, [project, step]);
 
-  // Warn before unload if project has unsaved changes (debounce in flight)
+  // Warn before unload only when a save is still pending
   useEffect(() => {
+    if (!hasPendingSave) return;
     const warn = (e) => { e.preventDefault(); };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, []);
+  }, [hasPendingSave]);
 
   const update = (section, data) => {
     setProject((prev) => ({ ...prev, [section]: { ...prev[section], ...data } }));
@@ -64,25 +68,45 @@ export default function Wizard() {
     return true;
   };
 
-  const goNext = () => { if (step < STEPS.length - 1 && canNext()) setStep(step + 1); };
-  const goBack = () => { if (step > 0) setStep(step - 1); };
+  const goNext = () => {
+    if (step < STEPS.length - 1 && canNext()) {
+      const newStep = step + 1;
+      setStep(newStep);
+      saveProject({ ...project, step: newStep });
+    }
+  };
+  const goBack = () => {
+    if (step > 0) {
+      const newStep = step - 1;
+      setStep(newStep);
+      saveProject({ ...project, step: newStep });
+    }
+  };
 
   return (
     <div className="fade-in">
       {/* Step indicators */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-        <div className="wizard-steps" style={{ marginBottom: 0 }}>
+        <div className="wizard-steps" role="tablist" aria-label="Pitch-Erstellungsschritte" style={{ marginBottom: 0 }}>
           {STEPS.map((s, i) => (
-            <div
+            <button
               key={s.key}
+              role="tab"
+              aria-selected={i === step}
+              disabled={i > step}
               className={`wizard-step ${i === step ? "active" : ""} ${i < step ? "done" : ""}`}
-              onClick={() => i <= step && setStep(i)}
+              onClick={() => {
+                if (i <= step && i !== step) {
+                  setStep(i);
+                  saveProject({ ...project, step: i });
+                }
+              }}
             >
               <span className="step-num">
                 {i < step ? <Icon name="check" size={12} /> : i + 1}
               </span>
               <span>{s.label}</span>
-            </div>
+            </button>
           ))}
         </div>
         {/* PDF button */}

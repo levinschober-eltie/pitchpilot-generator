@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { calculateAll, project20Years, fmtEuro, fmtNum, getPhaseCalcItems, getDynamicHeroCards } from "../calcEngine";
 import { C } from "../colors";
 import { useTheme } from "../ThemeContext";
 import Icon from "./Icons";
+import { useFocusTrap } from "../useFocusTrap";
 
 /* ─────────────────────────────────────────────
    Section registry
@@ -758,6 +759,8 @@ function SectionCheck({ section, checked, onChange }) {
 export default function PdfExport({ project, onClose }) {
   const T = useTheme();
   const S = getStyles(T);
+  const modalRef = useRef(null);
+  useFocusTrap(modalRef);
   const [selected, setSelected] = useState(() =>
     Object.fromEntries(SECTIONS.map(s => [s.key, s.def]))
   );
@@ -802,7 +805,7 @@ export default function PdfExport({ project, onClose }) {
       aria-label="PDF Export"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={S.dialog}>
+      <div ref={modalRef} style={S.dialog}>
         {/* Header */}
         <div style={S.header}>
           <div style={S.headerTitle}>

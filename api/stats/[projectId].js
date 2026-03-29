@@ -2,9 +2,11 @@
  * GET /api/stats/:projectId — Return view analytics for all share links of a project.
  * Returns: { shares: [{ slug, companyName, createdAt, totalViews, uniqueDevices, lastView, recentViews }] }
  *
- * Rate limit: 30 requests per minute per IP (in-memory, resets on cold start)
+ * Rate limit: 30 requests per minute per IP (Upstash sliding window)
+ * Auth: Bearer token validation via PITCHPILOT_API_TOKEN env variable (optional fallback for dev)
  */
 import { Redis } from "@upstash/redis";
+import { statsLimiter, getClientIp } from "../_lib/ratelimit.js";
 
 const redis = Redis.fromEnv();
 
@@ -14,35 +16,6 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:4173",
 ];
-
-// --- Rate limiting (Map-based, per serverless instance) ---
-const rateLimitMap = new Map();
-const RATE_LIMIT = 30;
-const RATE_WINDOW_MS = 60 * 1000;
-
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const key = ip || "unknown";
-  let entry = rateLimitMap.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + RATE_WINDOW_MS };
-    rateLimitMap.set(key, entry);
-  }
-
-  entry.count++;
-  const remaining = Math.max(0, RATE_LIMIT - entry.count);
-
-  return { allowed: entry.count <= RATE_LIMIT, remaining, limit: RATE_LIMIT };
-}
-
-// Cleanup stale entries periodically to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitMap) {
-    if (now > entry.resetAt) rateLimitMap.delete(key);
-  }
-}, 60 * 1000);
 
 /** Validate projectId format (alphanumeric, dashes, underscores, max 64 chars) */
 function isValidProjectId(id) {
@@ -66,16 +39,25 @@ export default async function handler(req, res) {
   const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader("Access-Control-Allow-Origin", corsOrigin);
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
-  // Rate limiting
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
-  const rateResult = checkRateLimit(ip);
-  res.setHeader("X-RateLimit-Limit", String(rateResult.limit));
-  res.setHeader("X-RateLimit-Remaining", String(rateResult.remaining));
+  // Bearer token auth — wenn PITCHPILOT_API_TOKEN gesetzt, muss der Token stimmen
+  const authToken = req.headers.authorization?.replace("Bearer ", "");
+  const expectedToken = process.env.PITCHPILOT_API_TOKEN;
+  if (expectedToken && authToken !== expectedToken) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
 
-  if (!rateResult.allowed) {
+  // Rate limiting (Upstash sliding window)
+  const ip = getClientIp(req);
+  const { success, limit, remaining, reset } = await statsLimiter.limit(ip);
+  res.setHeader("X-RateLimit-Limit", String(limit));
+  res.setHeader("X-RateLimit-Remaining", String(remaining));
+  res.setHeader("X-RateLimit-Reset", String(reset));
+
+  if (!success) {
     return res.status(429).json({ error: "Rate limit exceeded. Max 30 requests per minute." });
   }
 

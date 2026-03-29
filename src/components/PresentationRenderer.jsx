@@ -1138,7 +1138,19 @@ export default function PresentationRenderer() {
   // Update market results from MarketAnalysis
   const updateMarket = useCallback((results) => {
     setProject(prev => {
-      const next = { ...prev, market: results };
+      // Prüfe ob die Ergebnisse noch zum aktuellen Config passen
+      if (results._configHash) {
+        const currentHash = JSON.stringify({
+          e: prev.energy?.stromverbrauch,
+          p: prev.phaseConfig?.pv?.pvDach,
+        });
+        if (results._configHash !== currentHash) {
+          console.warn("[PitchPilot] Stale market results discarded");
+          return prev; // Ignoriere veraltete Ergebnisse
+        }
+      }
+      const { _configHash, ...cleanResults } = results;
+      const next = { ...prev, market: cleanResults };
       saveProject(next);
       return next;
     });

@@ -3,10 +3,11 @@
  * Returns the compressed payload for the client to decompress.
  * Tracks: timestamp, user-agent, IP hash (privacy-safe), viewport.
  *
- * No rate limit — view tracking should work freely.
+ * Rate limit: 60 requests per minute per IP (Upstash sliding window)
  */
 import { Redis } from "@upstash/redis";
 import { createHash } from "crypto";
+import { slugLimiter, getClientIp } from "../_lib/ratelimit.js";
 
 const redis = Redis.fromEnv();
 
@@ -50,6 +51,17 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
+  // Rate limiting (Upstash sliding window)
+  const ip = getClientIp(req);
+  const { success, limit, remaining, reset } = await slugLimiter.limit(ip);
+  res.setHeader("X-RateLimit-Limit", String(limit));
+  res.setHeader("X-RateLimit-Remaining", String(remaining));
+  res.setHeader("X-RateLimit-Reset", String(reset));
+
+  if (!success) {
+    return res.status(429).json({ error: "Rate limit exceeded. Max 60 requests per minute." });
+  }
+
   try {
     const { slug } = req.query;
     if (!slug || typeof slug !== "string" || slug.length > 100 || !/^[a-z0-9-]+$/.test(slug)) {
@@ -66,7 +78,6 @@ export default async function handler(req, res) {
     }
 
     // Record view event (non-blocking — don't let tracking failure block the response)
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress;
     const viewEvent = {
       ts: Date.now(),
       device: parseDevice(req.headers["user-agent"]),
