@@ -282,14 +282,9 @@ function expandObj(obj) {
   return out;
 }
 
-export async function encodeSharePayload(project, versionId) {
-  const { compressToEncodedURIComponent } = await import("lz-string");
-  const src = versionId
-    ? project.versions?.find(v => v.id === versionId)?.snapshot
-    : project;
-  if (!src) return null;
-
-  const payload = {
+/** Build the compact share payload from a project/snapshot */
+function buildSharePayload(project, src, versionId) {
+  return {
     v: 1,
     pid: project.id,
     n: src.company?.name || "",
@@ -304,7 +299,16 @@ export async function encodeSharePayload(project, versionId) {
     th: src.theme?.preset || "eckart",
     thc: src.theme?.customColors || null,
   };
+}
 
+export async function encodeSharePayload(project, versionId) {
+  const { compressToEncodedURIComponent } = await import("lz-string");
+  const src = versionId
+    ? project.versions?.find(v => v.id === versionId)?.snapshot
+    : project;
+  if (!src) return null;
+
+  const payload = buildSharePayload(project, src, versionId);
   const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
   const base = window.location.href.split("#")[0];
   return `${base}#/shared?d=${compressed}`;
@@ -316,32 +320,7 @@ export async function decodeSharePayload(encoded) {
   if (!json || json.trim().length === 0) return null;
 
   try {
-    const payload = JSON.parse(json);
-    if (payload.v !== 1) return null;
-
-    const phases = [
-      { key: "analyse", enabled: !!payload.p?.[0], label: "Analyse & Bewertung" },
-      { key: "pv", enabled: !!payload.p?.[1], label: "PV-Ausbau" },
-      { key: "speicher", enabled: !!payload.p?.[2], label: "Speicher & Steuerung" },
-      { key: "waerme", enabled: !!payload.p?.[3], label: "Wärmekonzept" },
-      { key: "ladeinfra", enabled: !!payload.p?.[4], label: "Ladeinfrastruktur" },
-      { key: "bess", enabled: !!payload.p?.[5], label: "Graustrom-BESS" },
-    ];
-
-    return {
-      id: "shared_" + generateId(),
-      sourceProjectId: payload.pid,
-      sourceVersionId: payload.vid,
-      company: { name: payload.n, city: payload.c, industry: payload.ind, address: "", employeeCount: 500, description: "", logoUrl: "" },
-      energy: expandObj(payload.e),
-      phases,
-      phaseConfig: expandObj(payload.pc),
-      finance: expandObj(payload.f),
-      consultant: payload.cn,
-      generated: null,
-      market: {},
-      theme: payload.th ? { preset: payload.th, customColors: payload.thc || null } : { preset: "eckart" },
-    };
+    return decodePayloadObj(JSON.parse(json));
   } catch (err) {
     console.warn("[PitchPilot] Failed to parse share payload:", err?.message);
     return null;
@@ -380,8 +359,6 @@ export function saveCustomerVersion(sourceProjectId, modifiedProject, calcNum) {
 
 /* ── Named Share Links (server-side via Vercel KV) ── */
 
-const API_BASE = import.meta.env.DEV ? "" : "";
-
 /**
  * Create a named share link via the API.
  * Falls back to the old client-side lz-string link if the API is unavailable.
@@ -393,26 +370,11 @@ export async function createNamedShareLink(project, versionId) {
     : project;
   if (!src) return null;
 
-  const payload = {
-    v: 1,
-    pid: project.id,
-    n: src.company?.name || "",
-    c: src.company?.city || "",
-    ind: src.company?.industry || "",
-    e: shortenObj(src.energy),
-    p: (src.phases || []).map(p => p.enabled ? 1 : 0),
-    pc: shortenObj(src.phaseConfig),
-    f: shortenObj(src.finance),
-    cn: src.consultant,
-    vid: versionId || null,
-    th: src.theme?.preset || "eckart",
-    thc: src.theme?.customColors || null,
-  };
-
+  const payload = buildSharePayload(project, src, versionId);
   const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
 
   try {
-    const resp = await fetch(`${API_BASE}/api/share`, {
+    const resp = await fetch(`/api/share`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -442,7 +404,7 @@ export async function createNamedShareLink(project, versionId) {
  */
 export async function loadNamedShare(slug) {
   try {
-    const resp = await fetch(`${API_BASE}/api/p/${encodeURIComponent(slug)}`);
+    const resp = await fetch(`/api/p/${encodeURIComponent(slug)}`);
     if (!resp.ok) return null;
     const { payload } = await resp.json();
     if (!payload) return null;
@@ -469,7 +431,7 @@ export async function loadNamedShare(slug) {
  */
 export async function fetchShareStats(projectId) {
   try {
-    const resp = await fetch(`${API_BASE}/api/stats/${encodeURIComponent(projectId)}`, {
+    const resp = await fetch(`/api/stats/${encodeURIComponent(projectId)}`, {
       headers: {
         "Authorization": `Bearer ${getApiToken()}`,
       },
