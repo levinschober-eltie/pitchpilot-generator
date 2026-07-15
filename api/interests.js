@@ -7,6 +7,7 @@
  */
 import { Redis } from "@upstash/redis";
 import { interestLimiter, getClientIp } from "./_lib/ratelimit.js";
+import { notifyErp } from "./_lib/notifyErp.js";
 
 const redis = Redis.fromEnv();
 
@@ -100,6 +101,18 @@ export default async function handler(req, res) {
     if (existing.length > 200) existing.splice(0, existing.length - 200);
 
     await redis.set(key, JSON.stringify(existing), { ex: 180 * 24 * 60 * 60 }); // 180 Tage TTL
+
+    // Closed-Loop: Interessent an ErpPilot melden (→ Lead in der Inbox, Round-Robin).
+    // No-op ohne Env; Fehler werden geschluckt (darf die Nutzer-Antwort nie brechen).
+    await notifyErp("interest", {
+      slug: interest.slug,
+      projectId: interest.projectId,
+      name: interest.name,
+      email: interest.email,
+      phone: interest.phone,
+      message: interest.message,
+      companyName: sanitize(req.body.companyName || "", 200),
+    });
 
     return res.status(200).json({ ok: true });
   } catch (err) {

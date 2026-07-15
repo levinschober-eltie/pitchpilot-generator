@@ -8,6 +8,7 @@
 import { Redis } from "@upstash/redis";
 import { createHash } from "crypto";
 import { slugLimiter, getClientIp } from "../_lib/ratelimit.js";
+import { notifyErp } from "../_lib/notifyErp.js";
 
 const redis = Redis.fromEnv();
 
@@ -125,6 +126,13 @@ export default async function handler(req, res) {
 
     // Save async — don't await to keep response fast
     redis.set(`share:${slug}`, JSON.stringify(data), { ex: 90 * 24 * 60 * 60 }).catch(() => {});
+
+    // Closed-Loop: nur beim ERSTEN View an ErpPilot melden (setzt pitch_links.opened_at,
+    // idempotent via COALESCE). No-op ohne Env — awaiten, damit es auf Serverless
+    // sicher läuft (detached Promises frieren nach der Response evtl. ein).
+    if (views.length === 1) {
+      await notifyErp("view", { slug });
+    }
 
     return res.status(200).json({
       payload: data.payload,
