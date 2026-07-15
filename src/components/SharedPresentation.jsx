@@ -50,7 +50,7 @@ function ConfigSlider({ label, value, min, max, step, unit, dec, onChange }) {
 
 
 /* ── Interest Form for leads ── */
-function InterestForm({ slug, projectId, T, S }) {
+function InterestForm({ slug, projectId, companyName, T, S }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
 
@@ -62,7 +62,7 @@ function InterestForm({ slug, projectId, T, S }) {
       const resp = await fetch("/api/interests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, projectId, ...form }),
+        body: JSON.stringify({ slug, projectId, companyName, ...form }),
       });
       setStatus(resp.ok ? "sent" : "error");
     } catch {
@@ -701,7 +701,7 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
       {/* Interest Form — shown on final slide */}
       {isFinal && (
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 2rem 2rem" }}>
-          <InterestForm slug={slug} projectId={project.sourceProjectId} T={T} S={S} />
+          <InterestForm slug={slug} projectId={project.sourceProjectId} companyName={company?.name || ""} T={T} S={S} />
         </div>
       )}
 
