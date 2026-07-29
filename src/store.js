@@ -388,7 +388,8 @@ export async function createNamedShareLink(project, versionId) {
   const compressed = compressToEncodedURIComponent(JSON.stringify(payload));
 
   try {
-    const resp = await fetch(`/api/share`, {
+    const { pitchApi } = await import("./apiBase.js");
+    const resp = await fetch(pitchApi.share(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -418,7 +419,8 @@ export async function createNamedShareLink(project, versionId) {
  */
 export async function loadNamedShare(slug) {
   try {
-    const resp = await fetch(`/api/p/${encodeURIComponent(slug)}`);
+    const { pitchApi } = await import("./apiBase.js");
+    const resp = await fetch(pitchApi.load(slug));
     if (!resp.ok) return null;
     const { payload } = await resp.json();
     if (!payload) return null;

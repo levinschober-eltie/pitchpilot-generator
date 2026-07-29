@@ -1,3 +1,4 @@
+import { pitchApi } from "../apiBase.js";
 import { useState, useMemo, useCallback, useEffect, useRef, useTransition, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { decodeSharePayload, saveCustomerVersion, getProject } from "../store";
@@ -59,7 +60,7 @@ function InterestForm({ slug, projectId, companyName, T, S }) {
     if (!form.name.trim() || !form.email.trim()) return;
     setStatus("sending");
     try {
-      const resp = await fetch("/api/interests", {
+      const resp = await fetch(pitchApi.interest(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug, projectId, companyName, ...form }),
@@ -396,7 +397,7 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
     const duration = Math.round((Date.now() - phaseStartRef.current) / 1000);
 
     if (duration >= 2) { // Only track if > 2 seconds
-      fetch(`/api/p/${encodeURIComponent(slug)}`, {
+      fetch(pitchApi.event(slug), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phase: prev, duration, action: "view" }),
@@ -416,7 +417,15 @@ function SharedPresentationFull({ project, gen, phases, company, calc, heroCards
         // Use sendBeacon for reliability on page unload
         const data = JSON.stringify({ phase: prevPhaseRef.current, duration, action: "view" });
         try {
-          navigator.sendBeacon(`/api/p/${encodeURIComponent(slug)}`, new Blob([data], { type: "application/json" }));
+          // keepalive-fetch statt sendBeacon: Beacons koennen keinen CORS-Preflight
+          // (application/json) — cross-origin zum ErpPilot-Backend wuerde der
+          // Browser sie verwerfen. keepalive ueberlebt den Unload genauso.
+          fetch(pitchApi.event(slug), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: data,
+            keepalive: true,
+          }).catch(() => {});
         } catch { /* fallback ignored */ }
       }
     };

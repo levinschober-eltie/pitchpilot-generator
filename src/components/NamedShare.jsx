@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { C } from "../colors";
+import { pitchApi } from "../apiBase.js";
 import Icon from "./Icons";
 
 export default function NamedShare() {
@@ -18,7 +19,7 @@ export default function NamedShare() {
 
     (async () => {
       try {
-        const resp = await fetch(`/api/p/${encodeURIComponent(slug)}`);
+        const resp = await fetch(pitchApi.load(slug));
         if (!resp.ok) {
           if (!cancelled) setError("Link nicht gefunden oder abgelaufen.");
           return;
