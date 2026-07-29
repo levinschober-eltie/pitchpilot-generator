@@ -7,7 +7,7 @@
  * Leer → Fallback auf die alten relativen Vercel-Routen (Legacy), damit die
  * Umstellung deploy-reihenfolge-unabhängig ist.
  */
-export const API_BASE = (import.meta.env.VITE_ERPPILOT_API || "").replace(/\/$/, "");
+export const API_BASE = (import.meta.env.VITE_ERPPILOT_API || "").trim().replace(/\/$/, "");
 
 export const pitchApi = {
   /** POST — manuellen Named-Share anlegen: {payload, companyName, projectId} → {slug, url} */
