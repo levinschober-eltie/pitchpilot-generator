@@ -1,37 +1,77 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/p/:slug", "destination": "/index.html" },
-    { "source": "/((?!api|assets|p/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/p/:slug",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api|assets|p/).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://lagerpilot-backend-production.up.railway.app https://elite-pv.pangea-software.de https://www.pangea-software.de https://api.anthropic.com https://archive-api.open-meteo.com https://api.energy-charts.info https://*.corsproxy.io https://api.allorigins.win; frame-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" },
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://lagerpilot-backend-production.up.railway.app https://elite-pv.pangea-software.de https://www.pangea-software.de https://api.anthropic.com https://archive-api.open-meteo.com https://api.energy-charts.info https://*.corsproxy.io https://api.allorigins.win; frame-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/api/p/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "s-maxage=60, stale-while-revalidate=300" }
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=60, stale-while-revalidate=300"
+        }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/p/:slug",
+      "destination": "https://pitchpilot-gewerbe.vercel.app/p/:slug",
+      "permanent": false
     }
   ]
 }
